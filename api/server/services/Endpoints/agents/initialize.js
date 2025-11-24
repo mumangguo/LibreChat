@@ -62,6 +62,16 @@ const initializeClient = async ({ req, res, signal, endpointOption }) => {
     throw new Error('Endpoint option not provided');
   }
   const appConfig = req.config;
+  const traceId = req.traceId || req.headers['x-trace-id'] || req.headers['x-request-id'];
+  const buildLogContext = (extra = {}) => ({
+    traceId,
+    userId: req.user?.id ?? null,
+    agentId: endpointOption?.agent_id ?? endpointOption?.agent?.id ?? null,
+    endpoint: endpointOption?.endpoint ?? null,
+    ...extra,
+  });
+
+  logger.info('[initializeClient] Starting agent initialization', buildLogContext());
 
   // TODO: use endpointOption to determine options/modelOptions
   /** @type {Array<UsageMetadata>} */
@@ -86,6 +96,7 @@ const initializeClient = async ({ req, res, signal, endpointOption }) => {
   if (!primaryAgent) {
     throw new Error('Agent not found');
   }
+  logger.info('[initializeClient] Loaded primary agent', buildLogContext({ agentId: primaryAgent.id }));
 
   const modelsConfig = await getModelsConfig(req);
   const validationResult = await validateAgentModel({
@@ -99,6 +110,7 @@ const initializeClient = async ({ req, res, signal, endpointOption }) => {
   if (!validationResult.isValid) {
     throw new Error(validationResult.error?.message);
   }
+  logger.info('[initializeClient] Primary agent validated', buildLogContext());
 
   const agentConfigs = new Map();
   const allowedProviders = new Set(appConfig?.endpoints?.[EModelEndpoint.agents]?.allowedProviders);
@@ -120,11 +132,13 @@ const initializeClient = async ({ req, res, signal, endpointOption }) => {
     allowedProviders,
     isInitialAgent: true,
   });
+  logger.info('[initializeClient] Primary agent configured', buildLogContext({ agentConfigId: primaryConfig.id }));
 
   const agent_ids = primaryConfig.agent_ids;
   let userMCPAuthMap = primaryConfig.userMCPAuthMap;
 
   async function processAgent(agentId) {
+    logger.debug('[initializeClient] Loading chained agent', buildLogContext({ agentId }));
     const agent = await getAgent({ id: agentId });
     if (!agent) {
       throw new Error(`Agent ${agentId} not found`);
@@ -158,6 +172,7 @@ const initializeClient = async ({ req, res, signal, endpointOption }) => {
       userMCPAuthMap = config.userMCPAuthMap;
     }
     agentConfigs.set(agentId, config);
+    logger.debug('[initializeClient] Loaded chained agent config', buildLogContext({ agentId }));
   }
 
   let edges = primaryConfig.edges;
@@ -254,6 +269,7 @@ const initializeClient = async ({ req, res, signal, endpointOption }) => {
         : EModelEndpoint.agents,
   });
 
+  logger.info('[initializeClient] Agent client constructed', buildLogContext({ sender }));
   return { client, userMCPAuthMap };
 };
 

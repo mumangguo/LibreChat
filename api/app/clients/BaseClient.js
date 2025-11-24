@@ -73,6 +73,19 @@ class BaseClient {
     this.visionMode;
   }
 
+  buildLogContext(extra = {}) {
+    const req = this.options?.req;
+    return {
+      traceId: req?.traceId ?? null,
+      client: this.clientName ?? 'base',
+      endpoint: this.options?.endpoint ?? null,
+      model: this.modelOptions?.model ?? this.model ?? null,
+      userId: req?.user?.id ?? this.user ?? null,
+      conversationId: this.conversationId ?? req?.body?.conversationId ?? null,
+      ...extra,
+    };
+  }
+
   setOptions() {
     throw new Error("Method 'setOptions' must be implemented.");
   }
@@ -587,6 +600,7 @@ class BaseClient {
     const appConfig = this.options.req?.config;
     /** @type {Promise<TMessage>} */
     let userMessagePromise;
+    const sendStart = Date.now();
     const { user, head, isEdited, conversationId, responseMessageId, saveOptions, userMessage } =
       await this.handleStartMethods(message, opts);
 
@@ -640,6 +654,8 @@ class BaseClient {
      */
     const parentMessageId = isEdited ? head : userMessage.messageId;
     this.parentMessageId = parentMessageId;
+    logger.info('[BaseClient] sendMessage start', this.buildLogContext({ parentMessageId, isEdited }));
+    const buildStart = Date.now();
     let {
       prompt: payload,
       tokenCountMap,
@@ -650,6 +666,11 @@ class BaseClient {
       this.getBuildMessagesOptions(opts),
       opts,
     );
+    logger.info('[BaseClient] buildMessages finished', this.buildLogContext({
+      promptTokens,
+      payloadSize: payload?.length ?? 0,
+      buildDurationMs: Date.now() - buildStart,
+    }));
 
     if (tokenCountMap) {
       logger.debug('[BaseClient] tokenCountMap', tokenCountMap);
@@ -690,7 +711,14 @@ class BaseClient {
       });
     }
 
+    logger.info('[BaseClient] sendCompletion dispatch', this.buildLogContext({
+      payloadSize: payload?.length ?? 0,
+    }));
+    const completionStart = Date.now();
     const { completion, metadata } = await this.sendCompletion(payload, opts);
+    logger.info('[BaseClient] sendCompletion completed', this.buildLogContext({
+      completionDurationMs: Date.now() - completionStart,
+    }));
     if (this.abortController) {
       this.abortController.requestCompleted = true;
     }
@@ -801,6 +829,10 @@ class BaseClient {
     );
     this.savedMessageIds.add(responseMessage.messageId);
     delete responseMessage.tokenCount;
+    logger.info('[BaseClient] sendMessage completed', this.buildLogContext({
+      responseMessageId,
+      totalDurationMs: Date.now() - sendStart,
+    }));
     return responseMessage;
   }
 

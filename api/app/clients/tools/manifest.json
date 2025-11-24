@@ -179,5 +179,18 @@
         "description": "Provide your Flux API key from your user profile."
       }
     ]
+  },
+  {
+    "name": "ModelScope Qwen-Image",
+    "pluginKey": "modelscope_qwen_image",
+    "description": "Generate images asynchronously with the Qwen-Image model hosted on ModelScope.",
+    "icon": "https://modelscope.cn/favicon.ico",
+    "authConfig": [
+      {
+        "authField": "MODELSCOPE_API_KEY",
+        "label": "ModelScope Token",
+        "description": "Use a ModelScope API token that has access to the Qwen/Qwen-Image model."
+      }
+    ]
   }
 ]

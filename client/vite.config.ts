@@ -58,8 +58,8 @@ export default defineConfig(({ command }) => ({
       },
       includeAssets: [],
       manifest: {
-        name: 'LibreChat',
-        short_name: 'LibreChat',
+        name: '木芒果的聊天室',
+        short_name: '木芒果的聊天室',
         display: 'standalone',
         background_color: '#000000',
         theme_color: '#009688',

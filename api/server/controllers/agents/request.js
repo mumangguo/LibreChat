@@ -1,3 +1,4 @@
+const { randomUUID } = require('crypto');
 const { sendEvent } = require('@librechat/api');
 const { logger } = require('@librechat/data-schemas');
 const { Constants } = require('librechat-data-provider');
@@ -40,6 +41,25 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
     responseMessageId: editedResponseMessageId = null,
   } = req.body;
 
+  const traceId =
+    req.traceId ||
+    req.headers['x-trace-id'] ||
+    req.headers['x-request-id'] ||
+    randomUUID().replace(/-/g, '');
+  req.traceId = traceId;
+
+  const buildLogContext = (extra = {}) => ({
+    traceId,
+    userId: req.user?.id ?? null,
+    conversationId,
+    endpoint: endpointOption?.endpoint ?? null,
+    agentId: endpointOption?.agent_id ?? endpointOption?.agent?.id ?? null,
+    ...extra,
+  });
+  const logInfo = (message, extra) => logger.info(message, buildLogContext(extra));
+  const logDebug = (message, extra) => logger.debug(message, buildLogContext(extra));
+  const logError = (message, extra) => logger.error(message, buildLogContext(extra));
+
   let sender;
   let abortKey;
   let userMessage;
@@ -53,6 +73,14 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
 
   const newConvo = !conversationId;
   const userId = req.user.id;
+
+  logInfo('[AgentController] Request received', {
+    parentMessageId,
+    overrideParentMessageId,
+    newConvo,
+    isRegenerate: !!isRegenerate,
+    isContinued: !!isContinued,
+  });
 
   // Create handler to avoid capturing the entire parent scope
   let getReqData = (data = {}) => {
@@ -78,7 +106,7 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
 
   // Create a function to handle final cleanup
   const performCleanup = () => {
-    logger.debug('[AgentController] Performing cleanup');
+    logDebug('[AgentController] Performing cleanup');
     if (Array.isArray(cleanupHandlers)) {
       for (const handler of cleanupHandlers) {
         try {
@@ -93,7 +121,7 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
 
     // Clean up abort controller
     if (abortKey) {
-      logger.debug('[AgentController] Cleaning up abort controller');
+      logDebug('[AgentController] Cleaning up abort controller');
       cleanupAbortController(abortKey);
     }
 
@@ -116,7 +144,7 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
     if (requestDataMap.has(req)) {
       requestDataMap.delete(req);
     }
-    logger.debug('[AgentController] Cleanup completed');
+    logDebug('[AgentController] Cleanup completed');
   };
 
   try {
@@ -132,6 +160,8 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
       }
     };
     cleanupHandlers.push(removePrelimHandler);
+    logInfo('[AgentController] Initializing agent client');
+
     /** @type {{ client: TAgentClient; userMCPAuthMap?: Record<string, Record<string, string>> }} */
     const result = await initializeClient({
       req,
@@ -148,6 +178,10 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
       cleanupHandlers.pop();
     }
     client = result.client;
+    logInfo('[AgentController] Agent client initialized', {
+      sender,
+      endpoint: endpointOption?.endpoint,
+    });
 
     // Register client with finalization registry if available
     if (clientRegistry) {
@@ -207,7 +241,15 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
       },
     };
 
+    const sendStart = Date.now();
+    logInfo('[AgentController] Dispatching client.sendMessage', {
+      hasFiles: Array.isArray(req.body?.files) && req.body.files.length > 0,
+    });
     let response = await client.sendMessage(text, messageOptions);
+    logInfo('[AgentController] client.sendMessage completed', {
+      durationMs: Date.now() - sendStart,
+      responseMessageId: response?.messageId,
+    });
 
     // Extract what we need and immediately break reference
     const messageId = response.messageId;
@@ -241,6 +283,10 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
       // Create a new response object with minimal copies
       const finalResponse = { ...response };
 
+      logInfo('[AgentController] Sending final response event', {
+        responseMessageId: finalResponse.messageId,
+        conversationTitle: conversation.title,
+      });
       sendEvent(res, {
         final: true,
         conversation,
@@ -249,6 +295,9 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
         responseMessage: finalResponse,
       });
       res.end();
+      logInfo('[AgentController] Response stream closed', {
+        responseMessageId: finalResponse.messageId,
+      });
 
       // Save the message if needed
       if (client.savedMessageIds && !client.savedMessageIds.has(messageId)) {
@@ -269,6 +318,9 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
       const finalResponse = { ...response };
       finalResponse.error = true;
 
+      logInfo('[AgentController] Sending aborted response event', {
+        responseMessageId: finalResponse.messageId,
+      });
       sendEvent(res, {
         final: true,
         conversation,
@@ -278,6 +330,9 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
         error: { message: 'Request was aborted during completion' },
       });
       res.end();
+      logInfo('[AgentController] Response stream closed after abort', {
+        responseMessageId: finalResponse.messageId,
+      });
     }
 
     // Save user message if needed
@@ -309,6 +364,7 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
     }
   } catch (error) {
     // Handle error without capturing much scope
+    logError('[AgentController] Error encountered', { error: error?.message });
     handleAbortError(res, req, error, {
       conversationId,
       sender,

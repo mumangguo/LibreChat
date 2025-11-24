@@ -209,6 +209,18 @@ class AgentClient extends BaseClient {
     return this.contentParts;
   }
 
+  buildLogContext(extra = {}) {
+    return {
+      traceId: this.options.req?.traceId ?? null,
+      client: this.clientName,
+      endpoint: this.options.endpoint,
+      agentId: this.options.agent?.id ?? null,
+      model: this.options.agent?.model_parameters?.model ?? null,
+      conversationId: this.options.req?.body?.conversationId ?? null,
+      ...extra,
+    };
+  }
+
   setOptions(options) {
     logger.info('[api/server/controllers/agents/client.js] setOptions', options);
   }
@@ -286,6 +298,7 @@ class AgentClient extends BaseClient {
     { instructions = null, additional_instructions = null },
     opts,
   ) {
+    logger.info('[AgentClient] buildMessages start', this.buildLogContext({ parentMessageId }));
     let orderedMessages = this.constructor.getMessagesForConversation({
       messages,
       parentMessageId,
@@ -457,6 +470,11 @@ class AgentClient extends BaseClient {
     if (systemContent) {
       this.options.agent.instructions = systemContent;
     }
+
+    logger.info('[AgentClient] buildMessages complete', this.buildLogContext({
+      promptTokens,
+      payloadSize: result.prompt?.length ?? 0,
+    }));
 
     return result;
   }

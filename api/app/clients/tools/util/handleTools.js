@@ -35,6 +35,7 @@ const {
   createYouTubeTools,
   TavilySearchResults,
   createOpenAIImageTools,
+  createModelScopeQwenImageTools,
 } = require('../');
 const { primeFiles: primeCodeFiles } = require('~/server/services/Files/Code/process');
 const { createFileSearchTool, primeFiles: primeSearchFiles } = require('./fileSearch');
@@ -216,6 +217,15 @@ const loadTools = async ({
         imageOutputType,
         fileStrategy,
         imageFiles,
+      });
+    },
+    modelscope_qwen_image: async () => {
+      const authFields = getAuthFields('modelscope_qwen_image');
+      const authValues = await loadAuthValues({ userId: user, authFields });
+      return createModelScopeQwenImageTools({
+        ...authValues,
+        isAgent: !!agent,
+        req: options.req,
       });
     },
   };
