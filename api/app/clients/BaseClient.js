@@ -151,7 +151,7 @@ class BaseClient {
   }
 
   /**
-   * Makes an HTTP request and logs the process.
+   * 发出HTTP请求并记录该过程。
    *
    * @param {RequestInfo} url - The URL to make the request to. Can be a string or a Request object.
    * @param {RequestInit} [init] - Optional init options for the request.
@@ -306,9 +306,9 @@ class BaseClient {
   }
 
   /**
-   * Adds instructions to the messages array. If the instructions object is empty or undefined,
-   * the original messages array is returned. Otherwise, the instructions are added to the messages
-   * array either at the beginning (default) or preserving the last message at the end.
+   * 向消息数组添加指令。如果指令对象为空或未定义，
+   * 返回原始消息数组。否则，说明将添加到消息中
+   * 数组在开头（默认）或在末尾保留最后一条消息。
    *
    * @param {Array} messages - An array of messages.
    * @param {Object} instructions - An object containing instructions to be added to the messages.
@@ -386,10 +386,10 @@ class BaseClient {
   }
 
   /**
-   * This method processes an array of messages and returns a context of messages that fit within a specified token limit.
-   * It iterates over the messages from newest to oldest, adding them to the context until the token limit is reached.
-   * If the token limit would be exceeded by adding a message, that message is not added to the context and remains in the original array.
-   * The method uses `push` and `pop` operations for efficient array manipulation, and reverses the context array at the end to maintain the original order of the messages.
+   * 此方法处理消息数组，并返回符合指定令牌限制的消息上下文。
+   * 它迭代从最新到最旧的消息，将它们添加到上下文中，直到达到令牌限制。
+   * 如果添加消息会超过令牌限制，则该消息不会添加到上下文中，而是保留在原始数组中。
+   * 该方法使用“push”和“pop”操作进行高效的数组操作，并在末尾反转上下文数组以保持消息的原始顺序。
    *
    * @param {Object} params
    * @param {TMessage[]} params.messages - An array of messages, each with a `tokenCount` property. The messages should be ordered from oldest to newest.
@@ -837,7 +837,7 @@ class BaseClient {
   }
 
   /**
-   * Stream usage should only be used for user message token count re-calculation if:
+   * 流使用情况应仅用于重新计算用户消息令牌计数，如果：
    * - The stream usage is available, with input tokens greater than 0,
    * - the client provides a function to calculate the current token count,
    * - files are being resent with every message (default behavior; or if `false`, with no attachments),
@@ -953,7 +953,7 @@ class BaseClient {
   }
 
   /**
-   * Save a message to the database.
+   * 将消息保存到数据库。
    * @param {TMessage} message
    * @param {Partial<TConversation>} endpointOptions
    * @param {string | null} user
@@ -1017,7 +1017,7 @@ class BaseClient {
   }
 
   /**
-   * Update a message in the database.
+   * 更新数据库中的消息。
    * @param {Partial<TMessage>} message
    */
   async updateMessageInDatabase(message) {
@@ -1025,7 +1025,7 @@ class BaseClient {
   }
 
   /**
-   * Iterate through messages, building an array based on the parentMessageId.
+   * 遍历消息，基于parentMessageId构建一个数组。
    *
    * This function constructs a conversation thread by traversing messages from a given parentMessageId up to the root message.
    * It handles cyclic references by ensuring that a message is not processed more than once.
@@ -1105,7 +1105,7 @@ class BaseClient {
   }
 
   /**
-   * Algorithm adapted from "6. Counting tokens for chat API calls" of
+   * 算法改编自“6。正在计算的聊天API调用的令牌
    * https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
    *
    * An additional 3 tokens need to be added for assistant label priming after all messages have been counted.
@@ -1189,7 +1189,7 @@ class BaseClient {
   }
 
   /**
-   * Merges completion content with existing content when editing TEXT or THINK types
+   * 编辑TEXT或THINK类型时，将完成内容与现有内容合并
    * @param {Array} existingContent - The existing content array
    * @param {Array} newCompletion - The new completion content
    * @param {string} editedType - The type of content being edited
@@ -1289,7 +1289,7 @@ class BaseClient {
   }
 
   /**
-   * Extracts text context from attachments and sets it on the message.
+   * 从附件中提取文本上下文并将其设置在消息上。
    * This handles text that was already extracted from files (OCR, transcriptions, document text, etc.)
    * @param {TMessage} message - The message to add context to
    * @param {MongoFile[]} attachments - Array of file attachments

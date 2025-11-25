@@ -224,13 +224,13 @@ function createModelScopeQwenImageTools(fields = {}) {
           },
         },
       ];
-      const response = [
+      const textResponse = [
         {
           type: ContentTypes.TEXT,
-          text: `${displayMessage}\n\ngenerated_image_id: "${file_ids[0]}"`,
+          text: displayMessage + `\n\ngenerated_image_id: "${file_ids[0]}"`,
         },
       ];
-      return [response, { content, file_ids }];
+      return [textResponse, { content, file_ids }];
     },
     toolkit.modelscope_qwen_image,
   );
