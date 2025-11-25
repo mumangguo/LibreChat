@@ -89,7 +89,15 @@ async function submitGeneration({ baseURL, apiKey, payload, timeoutMs, signal })
   return data;
 }
 
-async function pollForResult({ baseURL, apiKey, taskId, pollIntervalMs, maxPollAttempts, timeoutMs, signal }) {
+async function pollForResult({
+  baseURL,
+  apiKey,
+  taskId,
+  pollIntervalMs,
+  maxPollAttempts,
+  timeoutMs,
+  signal,
+}) {
   const taskUrl = `${baseURL}/tasks/${taskId}`;
   for (let attempt = 0; attempt < maxPollAttempts; attempt++) {
     const { data } = await axios.get(taskUrl, {
@@ -109,7 +117,7 @@ async function pollForResult({ baseURL, apiKey, taskId, pollIntervalMs, maxPollA
     }
     await wait(pollIntervalMs);
   }
-  throw new Error('Timed out waiting for ModelScope image generation to finish.');
+  throw new Error('等待ModelScope映像生成完成时超时。');
 }
 
 function sanitizePayload(payload) {
@@ -121,31 +129,24 @@ function sanitizePayload(payload) {
 function createModelScopeQwenImageTools(fields = {}) {
   const override = fields.override ?? false;
   if (!override && !fields.isAgent) {
-    throw new Error('This tool is only available for agents.');
+    throw new Error('此工具仅适用于智能体');
   }
 
   const apiKey = fields.MODELSCOPE_API_KEY || process.env.MODELSCOPE_API_KEY || '';
   if (!apiKey && !override) {
-    throw new Error('Missing MODELSCOPE_API_KEY environment variable.');
+    throw new Error('缺少MODERSCOPE_API_KEY');
   }
 
-  const model =
-    fields.MODELSCOPE_QWEN_IMAGE_MODEL || process.env.MODELSCOPE_QWEN_IMAGE_MODEL || 'Qwen/Qwen-Image';
-
-  const baseURL =
-    (fields.MODELSCOPE_BASE_URL || process.env.MODELSCOPE_BASE_URL || 'https://api-inference.modelscope.cn')
-      .replace(/\/$/, '')
-      + '/v1';
-
-  const timeoutMs = Number(process.env.MODELSCOPE_TIMEOUT_MS || fields.timeoutMs) || 30000;
-  const pollIntervalMs = Number(process.env.MODELSCOPE_POLL_INTERVAL_MS || fields.pollIntervalMs) || 5000;
-  const maxPollAttempts =
-    Number(process.env.MODELSCOPE_MAX_POLL_ATTEMPTS || fields.maxPollAttempts) || 60;
+  const model = 'Qwen/Qwen-Image';
+  const baseURL = 'https://api-inference.modelscope.cn/v1';
+  const timeoutMs = 30000;
+  const pollIntervalMs = 5000;
+  const maxPollAttempts = 60;
 
   const imageGenTool = tool(
     async ({ prompt, parameters = {}, model: overrideModel }, runnableConfig) => {
       if (!prompt || !prompt.trim()) {
-        throw new Error('Missing required field: prompt');
+        throw new Error('缺少prompt字段');
       }
 
       const signal = runnableConfig?.signal;
@@ -165,9 +166,12 @@ function createModelScopeQwenImageTools(fields = {}) {
           signal,
         });
       } catch (error) {
-        logger.error('[ModelScopeQwenImage] Error submitting image task:', error?.response?.data ?? error.message);
+        logger.error(
+          '[ModelScopeQwenImage]提交图像任务时出错：',
+          error?.response?.data ?? error.message,
+        );
         throw new Error(
-          `Something went wrong when trying to start the image generation. Details: ${
+          `尝试启动图像生成时出现了问题。细节： ${
             JSON.stringify(error?.response?.data ?? error.message) || 'Unknown error'
           }`,
         );
@@ -175,7 +179,7 @@ function createModelScopeQwenImageTools(fields = {}) {
 
       const taskId = generationResponse?.task_id;
       if (!taskId) {
-        throw new Error('ModelScope did not return a task_id for the generation request. Please try again.');
+        throw new Error('ModelScope没有为生成请求返回task_id。请重试。');
       }
 
       let taskResult;
@@ -195,12 +199,12 @@ function createModelScopeQwenImageTools(fields = {}) {
 
       const outputImages = Array.isArray(taskResult?.output_images) ? taskResult.output_images : [];
       if (!outputImages.length) {
-        throw new Error('ModelScope did not return any image URLs.');
+        throw new Error('ModelScope未返回任何图像URL。');
       }
 
       const imageUrl = resolveImageUrl(outputImages[0]);
       if (!imageUrl) {
-        throw new Error('Unable to determine the generated image URL.');
+        throw new Error('无法确定生成的图像URL。');
       }
 
       let base64Image;
@@ -208,7 +212,7 @@ function createModelScopeQwenImageTools(fields = {}) {
       try {
         ({ base64: base64Image, contentType } = await fetchBase64(imageUrl, signal, timeoutMs));
       } catch (error) {
-        throw new Error(`Failed to retrieve generated image bytes: ${error.message}`);
+        throw new Error(`生成的图像字节失败： ${error.message}`);
       }
 
       const file_ids = [v4()];
@@ -235,4 +239,3 @@ function createModelScopeQwenImageTools(fields = {}) {
 }
 
 module.exports = createModelScopeQwenImageTools;
-
