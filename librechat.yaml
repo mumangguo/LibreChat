@@ -27,7 +27,7 @@ cache: true
 
 # Custom interface configuration
 interface:
-  customWelcome: '欢迎来到木芒果聊天室！享受你的体验。'
+  customWelcome: '欢迎来到AI朋友圈！享受你的体验。'
   # Enable/disable file search as a chatarea selection (default: true)
   # Note: This setting does not disable the Agents File Search Capability.
   # To disable the Agents Capability, see the Agents Endpoint configuration instead.
@@ -42,9 +42,9 @@ interface:
     externalUrl: 'https://baidu.com'
     openNewTab: true
     modalAcceptance: true
-    modalTitle: '木芒果的聊天服务条款'
+    modalTitle: 'AI朋友圈的聊天服务条款'
     modalContent: |
-      # 木芒果聊天服务条款
+      # AI朋友圈聊天服务条款
 
   endpointsMenu: true
   modelSelect: true

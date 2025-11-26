@@ -58,8 +58,8 @@ export default defineConfig(({ command }) => ({
       },
       includeAssets: [],
       manifest: {
-        name: '木芒果的聊天室',
-        short_name: '木芒果的聊天室',
+        name: 'AI朋友圈',
+        short_name: 'AI朋友圈',
         display: 'standalone',
         background_color: '#000000',
         theme_color: '#009688',

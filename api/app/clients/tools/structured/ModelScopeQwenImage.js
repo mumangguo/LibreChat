@@ -11,7 +11,7 @@ const displayMessage =
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const toolkit = {
+const modelScopeToolkit = {
   modelscope_qwen_image: {
     name: 'modelscope_qwen_image',
     description:
@@ -232,10 +232,12 @@ function createModelScopeQwenImageTools(fields = {}) {
       ];
       return [textResponse, { content, file_ids }];
     },
-    toolkit.modelscope_qwen_image,
+    modelScopeToolkit.modelscope_qwen_image,
   );
 
   return [imageGenTool];
 }
 
+// 导出工具包以在loadAndFormatTools中使用
+createModelScopeQwenImageTools.modelScopeToolkit = modelScopeToolkit;
 module.exports = createModelScopeQwenImageTools;

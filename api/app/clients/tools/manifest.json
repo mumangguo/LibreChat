@@ -183,8 +183,9 @@
   {
     "name": "ModelScope Qwen-Image",
     "pluginKey": "modelscope_qwen_image",
+    "toolkit": true,
     "description": "Generate images asynchronously with the Qwen-Image model hosted on ModelScope.",
-    "icon": "https://modelscope.cn/favicon.ico",
+    "icon": "https://g.alicdn.com/sail-web/maas/2.11.19/favicon/128.ico",
     "authConfig": [
       {
         "authField": "MODELSCOPE_API_KEY",

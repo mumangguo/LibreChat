@@ -44,7 +44,7 @@ export default function Footer({ className }: { className?: string }) {
   // ).split('|');
 
   // 1. 定义一个用 | 连接的字符串
-  const footerString = '木芒果|的聊天室';
+  const footerString = 'AI朋友圈';
 
   // 2. 对这个字符串调用 split 方法
   const mainContentParts = footerString.split('|');

@@ -7,9 +7,10 @@ const { zodToJsonSchema } = require('zod-to-json-schema');
 const { Tools, ImageVisionTool } = require('librechat-data-provider');
 const { getToolkitKey, oaiToolkit, ytToolkit } = require('@librechat/api');
 const { toolkits } = require('~/app/clients/tools/manifest');
+const { modelScopeToolkit } = require('~/app/clients/tools/structured/ModelScopeQwenImage');
 
 /**
- * Loads and formats tools from the specified tool directory.
+ * 从指定的工具目录加载和格式化工具。
  *
  * The directory is scanned for JavaScript files, excluding any files in the filter set.
  * For each file, it attempts to load the file as a module and instantiate a class, if it's a subclass of `StructuredTool`.
@@ -84,6 +85,7 @@ function loadAndFormatTools({ directory, adminFilter = [], adminIncluded = [] })
     new Calculator(),
     ...Object.values(oaiToolkit),
     ...Object.values(ytToolkit),
+    ...Object.values(modelScopeToolkit),
   ];
   for (const toolInstance of basicToolInstances) {
     const formattedTool = formatToOpenAIAssistantTool(toolInstance);
