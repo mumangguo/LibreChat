@@ -59,7 +59,7 @@ const controller = async (req, res, next) => {
 
   try {
     await AgentController(req, res, next, initializeClient, addTitle);
-    logger.info('[routes/agents/chat] Request completed', {
+    logger.info('[routes/agents/chat] 9.请求完成', {
       ...logContext,
       durationMs: Date.now() - start,
     });

@@ -350,6 +350,7 @@ async function runAssistant({
   accumulatedMessages = [],
   in_progress: inProgress,
 }) {
+  logger.info('===LLM调用工具===');
   const appConfig = openai.req.config;
   let steps = accumulatedSteps;
   let messages = accumulatedMessages;
@@ -401,6 +402,7 @@ async function runAssistant({
   const assistantsEndpointConfig = appConfig.endpoints?.[endpoint] ?? {};
   const { pollIntervalMs, timeoutMs } = assistantsEndpointConfig;
 
+  logger.info('1. 等待运行完成或需要工具调用');
   const run = await waitForRun({
     openai,
     run_id,
@@ -410,10 +412,12 @@ async function runAssistant({
     timeout: timeoutMs,
   });
 
+  logger.info('2. 检查是否需要工具调用');
   if (!run.required_action) {
     // const { messages: sortedMessages, text } = await processMessages(openai, messages);
     // return { run, steps, messages: sortedMessages, text };
     const sortedMessages = messages.sort((a, b) => a.created_at - b.created_at);
+    logger.info('3. 没有工具调用，直接返回结果');
     return {
       run,
       steps,
@@ -423,6 +427,7 @@ async function runAssistant({
     };
   }
 
+  logger.info('3. 需要工具调用，处理工具调用');
   const { submit_tool_outputs } = run.required_action;
   const actions = submit_tool_outputs.tool_calls.map((item) => {
     const functionCall = item.function;
@@ -436,12 +441,15 @@ async function runAssistant({
     };
   });
 
+  logger.info('4. 处理工具调用');
   const tool_outputs = await processRequiredActions(openai, actions);
+  logger.info('5. 提交工具输出给 LLM,', tool_outputs);
   const toolRun = await openai.beta.threads.runs.submitToolOutputs(run.id, {
     thread_id: run.thread_id,
     tool_outputs,
   });
 
+  logger.info('6. 递归调用，等待 LLM 处理工具结果');
   // Recursive call with accumulated steps and messages
   return await runAssistant({
     openai,

@@ -8,6 +8,7 @@ const { Tools, ImageVisionTool } = require('librechat-data-provider');
 const { getToolkitKey, oaiToolkit, ytToolkit } = require('@librechat/api');
 const { toolkits } = require('~/app/clients/tools/manifest');
 const { modelScopeToolkit } = require('~/app/clients/tools/structured/ModelScopeQwenImage');
+const { chartFormatterToolkit } = require('~/app/clients/tools/structured/ChartImageFormatter');
 
 /**
  * 从指定的工具目录加载和格式化工具。
@@ -86,6 +87,7 @@ function loadAndFormatTools({ directory, adminFilter = [], adminIncluded = [] })
     ...Object.values(oaiToolkit),
     ...Object.values(ytToolkit),
     ...Object.values(modelScopeToolkit),
+    ...Object.values(chartFormatterToolkit),
   ];
   for (const toolInstance of basicToolInstances) {
     const formattedTool = formatToOpenAIAssistantTool(toolInstance);

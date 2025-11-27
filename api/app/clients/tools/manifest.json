@@ -31,6 +31,26 @@
     ]
   },
   {
+    "name": "Baidu Search",
+    "pluginKey": "baidu_search",
+    "description": "Use Baidu Search to find information in Chinese. Baidu is the leading search engine in China, providing comprehensive search results for Chinese content, news, and web pages.",
+    "icon": "https://www.baidu.com/favicon.ico",
+    "authConfig": [
+      {
+        "authField": "SEARCHAPI_API_KEY",
+        "label": "SearchAPI API Key",
+        "description": "Get your API key from <a href='https://www.searchapi.io/' target='_blank'>SearchAPI.io</a>. This tool uses SearchAPI.io to access Baidu search results. Documentation: <a href='https://www.searchapi.io/docs/baidu' target='_blank'>https://www.searchapi.io/docs/baidu</a>"
+      }
+    ]
+  },
+  {
+    "name": "Chart Image Formatter",
+    "pluginKey": "chart_image_formatter",
+    "description": "Convert the raw output of mcp-server-chart (text + image URL) into displayable chart images. Automatically downloads the image and returns it as an artifact.",
+    "icon": "assets/chart_image_formatter.png",
+    "authConfig": []
+  },
+  {
     "name": "YouTube",
     "pluginKey": "youtube",
     "toolkit": true,

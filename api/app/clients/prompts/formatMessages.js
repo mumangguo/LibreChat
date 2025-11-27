@@ -1,6 +1,7 @@
 const { ToolMessage } = require('@langchain/core/messages');
 const { EModelEndpoint, ContentTypes } = require('librechat-data-provider');
 const { HumanMessage, AIMessage, SystemMessage } = require('@langchain/core/messages');
+const { logger } = require('@librechat/data-schemas');
 
 /**
  * Formats a message to OpenAI Vision API payload format.
@@ -133,23 +134,25 @@ const formatFromLangChain = (message) => {
 };
 
 /**
- * Formats an array of messages for LangChain, handling tool calls and creating ToolMessage instances.
+ * 为LangChain格式化消息数组，处理工具调用并创建ToolMessage实例。
  *
  * @param {Array<Partial<TMessage>>} payload - The array of messages to format.
  * @returns {Array<(HumanMessage|AIMessage|SystemMessage|ToolMessage)>} - The array of formatted LangChain messages, including ToolMessages for tool calls.
  */
 const formatAgentMessages = (payload) => {
   const messages = [];
-
+  logger.info('===LLM分析意图(开始Agent消息格式化)===');
   for (const message of payload) {
     if (typeof message.content === 'string') {
       message.content = [{ type: ContentTypes.TEXT, [ContentTypes.TEXT]: message.content }];
     }
+    logger.info('1.处理用户消息');
     if (message.role !== 'assistant') {
       messages.push(formatMessage({ message, langChain: true }));
       continue;
     }
 
+    logger.info('2.处理AI消息及工具调用');
     let currentContent = [];
     let lastAIMessage = null;
 
@@ -168,6 +171,7 @@ const formatAgentMessages = (payload) => {
             return acc;
           }, '');
           content = `${content}\n${part[ContentTypes.TEXT] ?? ''}`.trim();
+          logger.info('3.创建新的AIMessage，准备工具调用');
           lastAIMessage = new AIMessage({ content });
           messages.push(lastAIMessage);
           currentContent = [];
@@ -186,6 +190,7 @@ const formatAgentMessages = (payload) => {
         }
 
         // Note: `tool_calls` list is defined when constructed by `AIMessage` class, and outputs should be excluded from it
+        logger.info('4.处理工具调用，添加工具调用到AIMessage');
         const { output, args: _args, ...tool_call } = part.tool_call;
         // TODO: investigate; args as dictionary may need to be provider-or-tool-specific
         let args = _args;
@@ -201,6 +206,7 @@ const formatAgentMessages = (payload) => {
         lastAIMessage.tool_calls.push(tool_call);
 
         // Add the corresponding ToolMessage
+        logger.info('5.添加对应的 ToolMessage（工具执行结果）');
         messages.push(
           new ToolMessage({
             tool_call_id: tool_call.id,
@@ -233,7 +239,8 @@ const formatAgentMessages = (payload) => {
       messages.push(new AIMessage({ content: currentContent }));
     }
   }
-
+  logger.info('消息格式化结果:', messages);
+  logger.info('===完成Agent消息格式化===');
   return messages;
 };
 

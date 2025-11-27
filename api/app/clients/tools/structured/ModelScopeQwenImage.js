@@ -15,13 +15,13 @@ const modelScopeToolkit = {
   modelscope_qwen_image: {
     name: 'modelscope_qwen_image',
     description:
-      'Generate high-quality, photorealistic images using the Qwen-Image model hosted on ModelScope.',
+      'Generate a single high-quality, photorealistic image using the Qwen-Image model hosted on ModelScope. IMPORTANT: This tool generates ONE image per call. To generate multiple images (e.g., for WeChat Moments 9-grid layout), you must call this tool multiple times, each time with a different prompt describing the desired scene. When generating multiple images for a grid layout, ALWAYS use the SAME size parameter (e.g., "1024x1024" for 1:1 square ratio) for ALL images to ensure consistent dimensions. For WeChat Moments 9-grid (3x3), generate exactly 9 images, all with size "1024x1024" (1:1 square ratio).',
     schema: z.object({
       prompt: z
         .string()
         .max(32000)
         .describe(
-          'Describe the desired scene in rich visual detail (subjects, lighting, composition, style, mood, background).',
+          'Describe the desired scene in rich visual detail (subjects, lighting, composition, style, mood, background). This should describe a SINGLE scene for ONE image. If you need multiple images (e.g., for a 9-grid layout), call this tool multiple times with different prompts. When generating images for a grid layout, ensure each prompt describes a distinct but related scene.',
         ),
       model: z
         .string()
@@ -145,6 +145,7 @@ function createModelScopeQwenImageTools(fields = {}) {
 
   const imageGenTool = tool(
     async ({ prompt, parameters = {}, model: overrideModel }, runnableConfig) => {
+      logger.info('===六、获取工具结果(ModelScopeQwenImageTools执行)===');
       if (!prompt || !prompt.trim()) {
         throw new Error('缺少prompt字段');
       }
@@ -158,6 +159,7 @@ function createModelScopeQwenImageTools(fields = {}) {
 
       let generationResponse;
       try {
+        logger.info('1. 提交生成任务');
         generationResponse = await submitGeneration({
           baseURL,
           apiKey,
@@ -184,6 +186,7 @@ function createModelScopeQwenImageTools(fields = {}) {
 
       let taskResult;
       try {
+        logger.info('2. 轮询任务状态');
         taskResult = await pollForResult({
           baseURL,
           apiKey,
@@ -202,6 +205,7 @@ function createModelScopeQwenImageTools(fields = {}) {
         throw new Error('ModelScope未返回任何图像URL。');
       }
 
+      logger.info('3. 获取图片 URL');
       const imageUrl = resolveImageUrl(outputImages[0]);
       if (!imageUrl) {
         throw new Error('无法确定生成的图像URL。');
@@ -209,12 +213,14 @@ function createModelScopeQwenImageTools(fields = {}) {
 
       let base64Image;
       let contentType;
+      logger.info('4. 下载图片并转换为 base64');
       try {
         ({ base64: base64Image, contentType } = await fetchBase64(imageUrl, signal, timeoutMs));
       } catch (error) {
         throw new Error(`生成的图像字节失败： ${error.message}`);
       }
 
+      logger.info('5. 返回 content_and_artifact 格式');
       const file_ids = [v4()];
       const content = [
         {

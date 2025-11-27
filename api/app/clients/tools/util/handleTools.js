@@ -24,6 +24,7 @@ const {
   manifestToolMap,
   // Basic Tools
   GoogleSearchAPI,
+  BaiduSearchAPI,
   // Structured Tools
   DALLE3,
   FluxAPI,
@@ -36,6 +37,7 @@ const {
   TavilySearchResults,
   createOpenAIImageTools,
   createModelScopeQwenImageTools,
+  createChartImageFormatterTools,
 } = require('../');
 const { primeFiles: primeCodeFiles } = require('~/server/services/Files/Code/process');
 const { createFileSearchTool, primeFiles: primeSearchFiles } = require('./fileSearch');
@@ -170,10 +172,12 @@ const loadTools = async ({
   fileStrategy,
   imageOutputType,
 }) => {
+  logger.info('4.1 定义工具构造函数映射，以便根据请求动态加载所需的工具。');
   const toolConstructors = {
     flux: FluxAPI,
     calculator: Calculator,
     google: GoogleSearchAPI,
+    baidu_search: BaiduSearchAPI,
     open_weather: OpenWeather,
     wolfram: StructuredWolfram,
     'stable-diffusion': StructuredSD,
@@ -182,6 +186,7 @@ const loadTools = async ({
     tavily_search_results_json: TavilySearchResults,
   };
 
+  logger.info('4.2 定义自定义工具构造函数，这些函数需要特殊的初始化逻辑或上下文处理。');
   const customConstructors = {
     youtube: async (_toolContextMap) => {
       const authFields = getAuthFields('youtube');
@@ -228,6 +233,9 @@ const loadTools = async ({
         req: options.req,
       });
     },
+    chart_image_formatter: async () => {
+      return createChartImageFormatterTools();
+    },
   };
 
   const requestedTools = {};
@@ -256,6 +264,7 @@ const loadTools = async ({
   const toolContextMap = {};
   const requestedMCPTools = {};
 
+  logger.info("4.3 遍历请求的工具列表，根据每个工具的类型和需求动态加载和初始化工具实例。");
   for (const tool of tools) {
     if (tool === Tools.execute_code) {
       requestedTools[tool] = async () => {
@@ -396,6 +405,7 @@ Current Date & Time: ${replaceSpecialVars({ text: '{{iso_datetime}}' })}
     return requestedTools;
   }
 
+  logger.info("4.4 并行加载所有非MCP工具实例，同时处理任何初始化错误以确保系统的稳定性。");
   const toolPromises = [];
   for (const tool of tools) {
     const validTool = requestedTools[tool];
@@ -415,6 +425,8 @@ Current Date & Time: ${replaceSpecialVars({ text: '{{iso_datetime}}' })}
   let index = -1;
   const failedMCPServers = new Set();
   const safeUser = createSafeUser(options.req?.user);
+
+  logger.info('4.5 顺序处理每个请求的MCP服务器，检查可用工具并根据配置初始化所需的工具实例。');
   for (const [serverName, toolConfigs] of Object.entries(requestedMCPTools)) {
     index++;
     /** @type {LCAvailableTools} */
@@ -479,6 +491,7 @@ Current Date & Time: ${replaceSpecialVars({ text: '{{iso_datetime}}' })}
     }
   }
   loadedTools.push(...(await Promise.all(mcpToolPromises)).flatMap((plugin) => plugin || []));
+  logger.info('4.6 返回已加载的工具实例及其上下文映射，以供调用方使用。');
   return { loadedTools, toolContextMap };
 };
 

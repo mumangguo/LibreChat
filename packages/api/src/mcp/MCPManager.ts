@@ -192,10 +192,10 @@ Please follow these instructions when using tools from the respective MCP server
     let connection: MCPConnection | undefined;
     const userId = user?.id;
     const logPrefix = userId ? `[MCP][User: ${userId}][${serverName}]` : `[MCP][${serverName}]`;
-
+    logger.info('===六、获取工具结果(MCP工具调用)===');
     try {
       if (userId && user) this.updateUserLastActivity(userId);
-
+      logger.info('1. 获取 MCP 连接');
       connection = await this.getConnection({
         serverName,
         user,
@@ -208,6 +208,7 @@ Please follow these instructions when using tools from the respective MCP server
         requestBody,
       });
 
+      logger.info('2. 检查连接状态');
       if (!(await connection.isConnected())) {
         /** May happen if getUserConnection failed silently or app connection dropped */
         throw new McpError(
@@ -227,6 +228,7 @@ Please follow these instructions when using tools from the respective MCP server
         connection.setRequestHeaders(currentOptions.headers || {});
       }
 
+      logger.info('3. 调用 MCP 工具');
       const result = await connection.client.request(
         {
           method: 'tools/call',
@@ -245,7 +247,9 @@ Please follow these instructions when using tools from the respective MCP server
       if (userId) {
         this.updateUserLastActivity(userId);
       }
+      logger.info('4. MCP工具结果,', result);
       this.checkIdleConnections();
+      logger.info('5. 格式化返回结果');
       return formatToolContent(result as t.MCPToolCallResponse, provider);
     } catch (error) {
       // Log with context and re-throw or handle as needed

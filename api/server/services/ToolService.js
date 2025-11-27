@@ -78,7 +78,9 @@ async function processRequiredActions(client, requiredActions) {
     `[required actions] user: ${client.req.user.id} | thread_id: ${requiredActions[0].thread_id} | run_id: ${requiredActions[0].run_id}`,
     requiredActions,
   );
+  logger.info('===LLM调用工具(处理工具调用请求)===');
   const appConfig = client.req.config;
+  logger.info('1. 加载工具定义');
   const toolDefinitions = await getCachedTools();
   const seenToolkits = new Set();
   const tools = requiredActions
@@ -99,6 +101,7 @@ async function processRequiredActions(client, requiredActions) {
     })
     .filter((toolName) => !!toolName);
 
+  logger.info('2. 加载工具实例');
   const { loadedTools } = await loadTools({
     user: client.req.user.id,
     model: client.req.body.model ?? 'gpt-4o-mini',
@@ -117,6 +120,7 @@ async function processRequiredActions(client, requiredActions) {
     imageOutputType: appConfig.imageOutputType,
   });
 
+  logger.info('3. 创建工具映射');
   const ToolMap = loadedTools.reduce((map, tool) => {
     map[tool.name] = tool;
     return map;
@@ -129,7 +133,7 @@ async function processRequiredActions(client, requiredActions) {
   let isActionTool = false;
   const ActionToolMap = {};
   const ActionBuildersMap = {};
-
+  logger.info('4. 处理每个工具调用');
   for (let i = 0; i < requiredActions.length; i++) {
     const currentAction = requiredActions[i];
     if (currentAction.tool === ImageVisionTool.function.name) {
@@ -137,7 +141,7 @@ async function processRequiredActions(client, requiredActions) {
       continue;
     }
     let tool = ToolMap[currentAction.tool] ?? ActionToolMap[currentAction.tool];
-
+    logger.info('5. 处理工具输出,工具名称:', currentAction.tool);
     const handleToolOutput = async (output) => {
       requiredActions[i].output = output;
 
@@ -161,6 +165,7 @@ async function processRequiredActions(client, requiredActions) {
         toolCall.function.output = `${currentAction.tool} displayed an image. All generated images are already plainly visible, so don't repeat the descriptions in detail. Do not list download links as they are available in the UI already. The user may download the images by clicking on them, but do not mention anything about downloading to the user.`;
 
         // Streams the "Finished" state of the tool call in the UI
+        logger.info('6. 流式发送工具调用结果到前端');
         client.addContentData({
           [ContentTypes.TOOL_CALL]: toolCall,
           index: toolCallIndex,
@@ -343,6 +348,7 @@ async function processRequiredActions(client, requiredActions) {
     };
 
     try {
+      logger.info('7. 执行工具调用');
       const promise = tool
         ._call(currentAction.toolInput)
         .then(handleToolOutput)
@@ -354,6 +360,7 @@ async function processRequiredActions(client, requiredActions) {
     }
   }
 
+  logger.info('8. 等待所有工具调用完成');
   return {
     tool_outputs: await Promise.all(promises),
   };
@@ -370,6 +377,8 @@ async function processRequiredActions(client, requiredActions) {
  * @returns {Promise<{ tools?: StructuredTool[]; userMCPAuthMap?: Record<string, Record<string, string>> }>} The agent tools.
  */
 async function loadAgentTools({ req, res, agent, signal, tool_resources, openAIApiKey }) {
+  logger.info('===开始加载Agent工具===');
+  logger.info('1.检查工具配置');
   if (!agent.tools || agent.tools.length === 0) {
     return {};
   } else if (
@@ -383,6 +392,7 @@ async function loadAgentTools({ req, res, agent, signal, tool_resources, openAIA
 
   const appConfig = req.config;
   const endpointsConfig = await getEndpointsConfig(req);
+  logger.info('2. 检查能力权限');
   let enabledCapabilities = new Set(endpointsConfig?.[EModelEndpoint.agents]?.capabilities ?? []);
   /** Edge case: use defined/fallback capabilities when the "agents" endpoint is not enabled */
   if (enabledCapabilities.size === 0 && agent.id === Constants.EPHEMERAL_AGENT_ID) {
@@ -402,6 +412,7 @@ async function loadAgentTools({ req, res, agent, signal, tool_resources, openAIA
   const areToolsEnabled = checkCapability(AgentCapabilities.tools);
 
   let includesWebSearch = false;
+  logger.info('3. 过滤可用工具');
   const _agentTools = agent.tools?.filter((tool) => {
     if (tool === Tools.file_search) {
       return checkCapability(AgentCapabilities.file_search);
@@ -435,6 +446,7 @@ async function loadAgentTools({ req, res, agent, signal, tool_resources, openAIA
     });
   }
 
+  logger.info('4. 加载工具实例');
   const { loadedTools, toolContextMap } = await loadTools({
     agent,
     signal,
@@ -457,6 +469,7 @@ async function loadAgentTools({ req, res, agent, signal, tool_resources, openAIA
     imageOutputType: appConfig.imageOutputType,
   });
 
+  logger.info('5. 格式化工具为 LLM 可用的格式');
   const agentTools = [];
   for (let i = 0; i < loadedTools.length; i++) {
     const tool = loadedTools[i];
@@ -639,6 +652,12 @@ async function loadAgentTools({ req, res, agent, signal, tool_resources, openAIA
     logger.warn(`No tools found for the specified tool calls: ${_agentTools.join(', ')}`);
     return {};
   }
+
+  logger.info(
+    '加载的工具列表:',
+    agentTools.map((t) => t.name),
+  );
+  logger.info('===完成加载Agent工具===');
 
   return {
     tools: agentTools,

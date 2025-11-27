@@ -1,6 +1,6 @@
 /**
  * MCP Tools Controller
- * Handles MCP-specific tool endpoints, decoupled from regular LibreChat tools
+ * 处理MCP特定的工具端点，与常规LibreChat工具解耦
  */
 const { logger } = require('@librechat/data-schemas');
 const { Constants } = require('librechat-data-provider');
@@ -13,7 +13,7 @@ const { getMCPManager } = require('~/config');
 const { mcpServersRegistry } = require('@librechat/api');
 
 /**
- * Get all MCP tools available to the user
+ * 获得用户可用的所有MCP工具
  */
 const getMCPTools = async (req, res) => {
   try {

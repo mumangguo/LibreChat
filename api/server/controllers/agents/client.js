@@ -471,10 +471,13 @@ class AgentClient extends BaseClient {
       this.options.agent.instructions = systemContent;
     }
 
-    logger.info('[AgentClient] buildMessages complete', this.buildLogContext({
-      promptTokens,
-      payloadSize: result.prompt?.length ?? 0,
-    }));
+    logger.info(
+      '[AgentClient] buildMessages complete',
+      this.buildLogContext({
+        promptTokens,
+        payloadSize: result.prompt?.length ?? 0,
+      }),
+    );
 
     return result;
   }
@@ -856,6 +859,7 @@ class AgentClient extends BaseClient {
     const balanceConfig = getBalanceConfig(appConfig);
     const transactionsConfig = getTransactionsConfig(appConfig);
     try {
+      logger.info('===LLM分析意图(发送给 LLM)===');
       if (!abortController) {
         abortController = new AbortController();
       }
@@ -863,6 +867,7 @@ class AgentClient extends BaseClient {
       /** @type {AppConfig['endpoints']['agents']} */
       const agentsEConfig = appConfig.endpoints?.[EModelEndpoint.agents];
 
+      logger.info('1. 准备AgentClient的运行配置');
       config = {
         runName: 'AgentRun',
         configurable: {
@@ -883,6 +888,7 @@ class AgentClient extends BaseClient {
         version: 'v2',
       };
 
+      logger.info('2.格式化消息为LangChain格式');
       const toolSet = new Set((this.options.agent.tools ?? []).map((tool) => tool && tool.name));
       let { messages: initialMessages, indexTokenCountMap } = formatAgentMessages(
         payload,
@@ -893,6 +899,7 @@ class AgentClient extends BaseClient {
       /**
        * @param {BaseMessage[]} messages
        */
+      logger.info('3.运行代理以处理消息');
       const runAgents = async (messages) => {
         const agents = [this.options.agent];
         if (
@@ -966,6 +973,7 @@ class AgentClient extends BaseClient {
 
         /** @deprecated Agent Chain */
         config.configurable.last_agent_id = agents[agents.length - 1].id;
+        logger.info('4.处理流（LLM 会在这里分析意图并决定调用工具）');
         await run.processStream({ messages }, config, {
           callbacks: {
             [Callback.TOOL_ERROR]: logToolError,

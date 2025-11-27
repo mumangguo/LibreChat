@@ -649,12 +649,12 @@ class BaseClient {
     }
 
     /**
-     * When the userMessage is pushed to currentMessages, the parentMessage is the userMessageId.
-     * this only matters when buildMessages is utilizing the parentMessageId, and may vary on implementation
+     * 当userMessage被推送到currentMessages时，parentMessage是userMessageId。
+     * 这仅在buildMessages使用parentMessageId时才重要，并且可能因实现而异
      */
     const parentMessageId = isEdited ? head : userMessage.messageId;
     this.parentMessageId = parentMessageId;
-    logger.info('[BaseClient] sendMessage start', this.buildLogContext({ parentMessageId, isEdited }));
+    logger.info('[BaseClient] 5.构建消息开始', this.buildLogContext({ parentMessageId, isEdited }));
     const buildStart = Date.now();
     let {
       prompt: payload,
@@ -666,7 +666,7 @@ class BaseClient {
       this.getBuildMessagesOptions(opts),
       opts,
     );
-    logger.info('[BaseClient] buildMessages finished', this.buildLogContext({
+    logger.info('[BaseClient] 6.构建消息结束', this.buildLogContext({
       promptTokens,
       payloadSize: payload?.length ?? 0,
       buildDurationMs: Date.now() - buildStart,
@@ -711,12 +711,12 @@ class BaseClient {
       });
     }
 
-    logger.info('[BaseClient] sendCompletion dispatch', this.buildLogContext({
+    logger.info('[BaseClient] 开始调用完成调度', this.buildLogContext({
       payloadSize: payload?.length ?? 0,
     }));
     const completionStart = Date.now();
     const { completion, metadata } = await this.sendCompletion(payload, opts);
-    logger.info('[BaseClient] sendCompletion completed', this.buildLogContext({
+    logger.info('[BaseClient] 完成调度结束', this.buildLogContext({
       completionDurationMs: Date.now() - completionStart,
     }));
     if (this.abortController) {

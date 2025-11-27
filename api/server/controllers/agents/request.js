@@ -160,7 +160,7 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
       }
     };
     cleanupHandlers.push(removePrelimHandler);
-    logInfo('[AgentController] Initializing agent client');
+    logInfo('[AgentController] 1.正在初始化Agent客户端');
 
     /** @type {{ client: TAgentClient; userMCPAuthMap?: Record<string, Record<string, string>> }} */
     const result = await initializeClient({
@@ -178,7 +178,7 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
       cleanupHandlers.pop();
     }
     client = result.client;
-    logInfo('[AgentController] Agent client initialized', {
+    logInfo('[AgentController] 2.Agent客户端已初始化', {
       sender,
       endpoint: endpointOption?.endpoint,
     });
@@ -242,11 +242,11 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
     };
 
     const sendStart = Date.now();
-    logInfo('[AgentController] Dispatching client.sendMessage', {
+    logInfo('[AgentController] 3.发送消息给客户端', {
       hasFiles: Array.isArray(req.body?.files) && req.body.files.length > 0,
     });
     let response = await client.sendMessage(text, messageOptions);
-    logInfo('[AgentController] client.sendMessage completed', {
+    logInfo('[AgentController] 4.发送消息完成', {
       durationMs: Date.now() - sendStart,
       responseMessageId: response?.messageId,
     });
@@ -283,7 +283,7 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
       // Create a new response object with minimal copies
       const finalResponse = { ...response };
 
-      logInfo('[AgentController] Sending final response event', {
+      logInfo('[AgentController] 7.发送最终响应事件', {
         responseMessageId: finalResponse.messageId,
         conversationTitle: conversation.title,
       });
@@ -295,7 +295,7 @@ const AgentController = async (req, res, next, initializeClient, addTitle) => {
         responseMessage: finalResponse,
       });
       res.end();
-      logInfo('[AgentController] Response stream closed', {
+      logInfo('[AgentController] 8.响应流已关闭', {
         responseMessageId: finalResponse.messageId,
       });
 

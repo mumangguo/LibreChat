@@ -157,6 +157,21 @@ actions:
 #       - "mcp-obsidian"
 #       - /path/to/obsidian/vault
 
+mcpServers:
+  12306-mcp:
+    type: sse
+    url: https://mcp.api-inference.modelscope.net/70ecb1f5195a48/sse
+    timeout: 60000
+  supabase-mcp:
+    type: http
+    url: "https://mcp.supabase.com/mcp?project_ref=owkavafcbjotzskmcrww"
+    timeout: 60000
+    headers:
+      "Authorization": "Bearer ${SUPABASE_ACCESS_TOKEN}"
+  mcp-server-chart:
+    type: sse
+    url: "https://mcp.api-inference.modelscope.net/143b865a80f840/sse"
+
 # Definition of custom endpoints
 endpoints:
   # assistants:
@@ -224,7 +239,7 @@ endpoints:
       apiKey: "${MODELSCOPE_API_KEY}"
       baseURL: "https://api-inference.modelscope.cn/v1"
       models:
-        default: [ "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B","Qwen/Qwen3-VL-30B-A3B-Instruct" ]
+        default: [ "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B","Qwen/Qwen3-VL-30B-A3B-Instruct","Qwen/Qwen3-Coder-480B-A35B-Instruct" ]
         fetch: false
       titleConvo: true
       titleModel: "current_model"

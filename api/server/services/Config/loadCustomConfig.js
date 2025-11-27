@@ -13,7 +13,7 @@ const {
 } = require('librechat-data-provider');
 
 const projectRoot = path.resolve(__dirname, '..', '..', '..', '..');
-const defaultConfigPath = path.resolve(projectRoot, 'librechat.yaml');
+const defaultConfigPath = path.resolve(projectRoot, 'config.yaml');
 
 let i = 0;
 

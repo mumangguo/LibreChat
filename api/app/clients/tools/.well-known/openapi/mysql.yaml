@@ -1,0 +1,494 @@
+openapi: 3.0.3
+info:
+  title: MySQL数据库操作工具
+  description: 符合OpenAPI规范的MySQL本地数据库操作API（无需传入连接配置），支持表管理和记录CRUD
+  version: 3.0.0
+  contact:
+    name: 木芒果
+    email: 1805395628@qq.com
+servers:
+  - url: http://127.0.0.1:8000
+    description: 本地MySQL工具服务地址
+tags:
+  - name: table_management
+    description: 表创建/查询/删除/结构查看
+  - name: record_operation
+    description: 记录插入/查询/更新/删除
+paths:
+  /tables:
+    post:
+      tags:
+        - table_management
+      summary: 创建MySQL表
+      description: 创建MySQL数据表，支持自定义列类型和约束（如主键、自增、非空等）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TableCreateRequest'
+      responses:
+        '200':
+          description: 表创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: 表 `users` 创建成功
+                  sql:
+                    type: string
+                    example: CREATE TABLE IF NOT EXISTS `users` (`id` INT PRIMARY KEY AUTO_INCREMENT, `username` VARCHAR(50) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+        '400':
+          description: 创建失败（参数错误或SQL语法错误）
+        '500':
+          description: 数据库连接失败
+    get:
+      tags:
+        - table_management
+      summary: 查询所有表名
+      description: 查询当前数据库中所有的数据表名称
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  database:
+                    type: string
+                    example: test
+                  table_count:
+                    type: integer
+                    example: 3
+                  tables:
+                    type: array
+                    items:
+                      type: string
+                    example: ["users", "orders", "products"]
+        '500':
+          description: 查询失败或数据库连接错误
+
+  /tables/{table_name}/structure:
+    get:
+      tags:
+        - table_management
+      summary: 查询表结构
+      description: 查询指定表的详细结构（列名、类型、约束、默认值等）
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: users
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  table_name:
+                    type: string
+                    example: users
+                  column_count:
+                    type: integer
+                    example: 2
+                  structure:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        column_name:
+                          type: string
+                          example: id
+                        data_type:
+                          type: string
+                          example: int
+                        is_nullable:
+                          type: string
+                          example: NO
+                        column_default:
+                          type: string
+                          example: null
+                        column_key:
+                          type: string
+                          example: PRI
+                        extra:
+                          type: string
+                          example: auto_increment
+                        comment:
+                          type: string
+                          example: 主键ID
+        '404':
+          description: 表不存在
+        '500':
+          description: 查询失败或数据库连接错误
+
+  /tables/{table_name}:
+    delete:
+      tags:
+        - table_management
+      summary: 删除表
+      description: 删除指定数据表（谨慎使用！）
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: users
+        - name: if_exists
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+            description: 是否忽略不存在的表
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: 表 `users` 已删除
+        '400':
+          description: 删除失败
+        '500':
+          description: 数据库连接错误
+
+  /tables/{table_name}/records:
+    post:
+      tags:
+        - record_operation
+      summary: 插入记录
+      description: 向指定表插入一条记录，支持忽略重复记录
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordInsertRequest'
+      responses:
+        '200':
+          description: 插入成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: 记录插入成功
+                  insert_id:
+                    type: integer
+                    example: 1
+                  affected_rows:
+                    type: integer
+                    example: 1
+        '400':
+          description: 插入失败（参数错误或重复记录）
+        '500':
+          description: 数据库连接错误
+
+    get:
+      tags:
+        - record_operation
+      summary: 查询记录
+      description: 多条件查询表记录，支持字段筛选、分页、排序
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: users
+        - name: fields
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+            example: ["id", "username"]
+            description: 要查询的列名（默认查询所有列）
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 100
+            minimum: 1
+            maximum: 1000
+            description: 返回记录数限制
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+            description: 分页偏移量
+        - name: order_by
+          in: query
+          required: false
+          schema:
+            type: string
+            example: id DESC
+            description: 排序字段（如：id DESC）
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                conditions:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/QueryCondition'
+                  description: 查询条件（可选）
+      responses:
+        '200':
+          description: 查询成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  total:
+                    type: integer
+                    example: 50
+                  limit:
+                    type: integer
+                    example: 20
+                  offset:
+                    type: integer
+                    example: 0
+                  record_count:
+                    type: integer
+                    example: 20
+                  records:
+                    type: array
+                    items:
+                      type: object
+                      example: {"id": 1, "username": "test_user", "age": 25}
+        '400':
+          description: 查询失败（条件格式错误）
+        '500':
+          description: 数据库连接错误
+
+    put:
+      tags:
+        - record_operation
+      summary: 更新记录
+      description: 支持多条件更新表记录，禁止无条件更新所有记录
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordUpdateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: 成功更新 3 条记录
+                  affected_rows:
+                    type: integer
+                    example: 3
+        '400':
+          description: 更新失败（无条件或参数错误）
+        '500':
+          description: 数据库连接错误
+
+    delete:
+      tags:
+        - record_operation
+      summary: 删除记录
+      description: 支持多条件删除表记录，条件不能为空（防止误删）
+      parameters:
+        - name: table_name
+          in: path
+          required: true
+          schema:
+            type: string
+            example: users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecordDeleteRequest'
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: 成功删除 2 条记录
+                  affected_rows:
+                    type: integer
+                    example: 2
+        '400':
+          description: 删除失败（无条件或参数错误）
+        '500':
+          description: 数据库连接错误
+
+components:
+  schemas:
+    TableCreateRequest:
+      type: object
+      description: 创建表的请求参数
+      properties:
+        table_name:
+          type: string
+          description: 表名（需符合MySQL命名规范）
+          example: users
+        columns:
+          type: object
+          description: 列定义（键为列名，值为MySQL数据类型+约束）
+          example:
+            id: "INT PRIMARY KEY AUTO_INCREMENT"
+            username: "VARCHAR(50) NOT NULL UNIQUE"
+            age: "TINYINT UNSIGNED"
+        if_not_exists:
+          type: boolean
+          default: true
+          description: 是否忽略已存在的表
+      required:
+        - table_name
+        - columns
+
+    RecordInsertRequest:
+      type: object
+      description: 插入记录的请求参数
+      properties:
+        data:
+          type: object
+          description: 记录数据（键为列名，值为对应数据）
+          example:
+            username: test_user
+            age: 25
+            email: test@example.com
+        ignore_duplicate:
+          type: boolean
+          default: false
+          description: 是否忽略重复记录（使用INSERT IGNORE）
+      required:
+        - data
+
+    QueryCondition:
+      type: object
+      description: 查询/更新/删除的条件模型
+      properties:
+        column:
+          type: string
+          description: 列名
+          example: age
+        operator:
+          type: string
+          description: 比较运算符（=, >, <, >=, <=, !=, LIKE, IN等）
+          example: ">"
+        value:
+          description: 条件值（IN运算符需传入列表）
+          example: 18
+      required:
+        - column
+        - operator
+        - value
+
+    RecordUpdateRequest:
+      type: object
+      description: 更新记录的请求参数
+      properties:
+        update_data:
+          type: object
+          description: 要更新的数据（键为列名）
+          example:
+            age: 26
+            email: new_test@example.com
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryCondition'
+          description: 更新条件（不能为空）
+          example:
+            - column: username
+              operator: "="
+              value: test_user
+      required:
+        - update_data
+        - conditions
+
+    RecordDeleteRequest:
+      type: object
+      description: 删除记录的请求参数
+      properties:
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryCondition'
+          description: 删除条件（不能为空）
+          example:
+            - column: age
+              operator: "<"
+              value: 18
+      required:
+        - conditions
