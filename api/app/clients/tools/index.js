@@ -15,6 +15,7 @@ const TraversaalSearch = require('./structured/TraversaalSearch');
 const createOpenAIImageTools = require('./structured/OpenAIImageTools');
 const TavilySearchResults = require('./structured/TavilySearchResults');
 const createModelScopeQwenImageTools = require('./structured/ModelScopeQwenImage');
+const createSpecKitTools = require('./structured/SpecKitTools');
 
 module.exports = {
   ...manifest,
@@ -33,4 +34,5 @@ module.exports = {
   TavilySearchResults,
   createOpenAIImageTools,
   createModelScopeQwenImageTools,
+  createSpecKitTools,
 };

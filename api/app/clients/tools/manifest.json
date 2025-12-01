@@ -213,5 +213,19 @@
         "description": "Use a ModelScope API token that has access to the Qwen/Qwen-Image model."
       }
     ]
+  },
+  {
+    "name": "Spec Kit",
+    "pluginKey": "speckit",
+    "toolkit": true,
+    "description": "Spec-Driven Development toolkit. Generate project constitution, specifications, plans, tasks, and implementation guides using Spec Kit methodology. Powered by DeepSeek LLM.",
+    "icon": "https://img.cdn1.vip/i/69290c1ac66bc_1764297754.png",
+    "authConfig": [
+      {
+        "authField": "DEEPSEEK_API_KEY||DEEP_SEEK_API_KEY",
+        "label": "DeepSeek API Key",
+        "description": "Your DeepSeek API key for generating Spec Kit artifacts. Get your key at <a href='https://platform.deepseek.com/' target='_blank'>DeepSeek Platform</a>."
+      }
+    ]
   }
 ]

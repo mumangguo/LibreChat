@@ -38,6 +38,8 @@ const {
   createOpenAIImageTools,
   createModelScopeQwenImageTools,
   createChartImageFormatterTools,
+  createSpecKitTools,
+  createModelScopeZImageTools,
 } = require('../');
 const { primeFiles: primeCodeFiles } = require('~/server/services/Files/Code/process');
 const { createFileSearchTool, primeFiles: primeSearchFiles } = require('./fileSearch');
@@ -235,6 +237,23 @@ const loadTools = async ({
     },
     chart_image_formatter: async () => {
       return createChartImageFormatterTools();
+    },
+    speckit: async () => {
+      const authFields = getAuthFields('speckit');
+      const authValues = await loadAuthValues({ userId: user, authFields });
+      return createSpecKitTools({
+        ...authValues,
+        userId: user,
+      });
+    },
+    modelscope_z_image: async () => {
+      const authFields = getAuthFields('modelscope_z_image');
+      const authValues = await loadAuthValues({ userId: user, authFields });
+      return createModelScopeZImageTools({
+        ...authValues,
+        isAgent: !!agent,
+        req: options.req,
+      });
     },
   };
 
