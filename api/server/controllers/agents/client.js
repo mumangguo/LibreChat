@@ -461,10 +461,11 @@ class AgentClient extends BaseClient {
     if (promptTokens >= 0 && typeof opts?.getReqData === 'function') {
       opts.getReqData({ promptTokens });
     }
-
+    logger.info('[AgentClient] 检查用户提问中是否在记忆中也包含相关内容...');
     const withoutKeys = await this.useMemory();
     if (withoutKeys) {
       systemContent += `${memoryInstructions}\n\n# Existing memory about the user:\n${withoutKeys}`;
+      logger.info('[AgentClient] 为系统提示词添加记忆内容:' + systemContent);
     }
 
     if (systemContent) {
@@ -881,6 +882,7 @@ class AgentClient extends BaseClient {
             parentMessageId: this.parentMessageId,
           },
           user: createSafeUser(this.options.req.user),
+          isVisionModel: this.isVisionModel,
         },
         recursionLimit: agentsEConfig?.recursionLimit ?? 25,
         signal: abortController.signal,

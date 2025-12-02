@@ -5,6 +5,7 @@ const { z } = require('zod');
 const { logger } = require('@librechat/data-schemas');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const { ContentTypes } = require('librechat-data-provider');
+const fetch = require('node-fetch');
 
 const displayMessage =
   "ModelScope Qwen-Image generated an image. All generated images are already plainly visible, so don't repeat the descriptions in detail. Do not list download links as they are available in the UI already. The user may download the images by clicking on them, but do not mention anything about downloading to the user.";
@@ -211,32 +212,32 @@ function createModelScopeQwenImageTools(fields = {}) {
         throw new Error('无法确定生成的图像URL。');
       }
 
-      let base64Image;
-      let contentType;
-      logger.info('4. 下载图片并转换为 base64');
-      try {
-        ({ base64: base64Image, contentType } = await fetchBase64(imageUrl, signal, timeoutMs));
-      } catch (error) {
-        throw new Error(`生成的图像字节失败： ${error.message}`);
+      const fetchOptions = {};
+      if (process.env.PROXY) {
+        fetchOptions.agent = new HttpsProxyAgent(process.env.PROXY);
       }
+      const imageResponse = await fetch(imageUrl, fetchOptions);
+      const arrayBuffer = await imageResponse.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+      const isVisionModel = runnableConfig?.configurable?.isVisionModel;
+      const content = [];
 
-      logger.info('5. 返回 content_and_artifact 格式');
-      const file_ids = [v4()];
-      const content = [
-        {
+      if (isVisionModel) {
+        content.push({
           type: ContentTypes.IMAGE_URL,
           image_url: {
-            url: `data:${contentType};base64,${base64Image}`,
+            url: `data:image/png;base64,${base64}`,
           },
-        },
-      ];
-      const textResponse = [
+        });
+      }
+
+      const response = [
         {
           type: ContentTypes.TEXT,
-          text: displayMessage + `\n\ngenerated_image_id: "${file_ids[0]}"`,
+          text: isVisionModel ? displayMessage : `${displayMessage}\n\nImage URL: ${imageUrl}`,
         },
       ];
-      return [textResponse, { content, file_ids }];
+      return [response, { content }];
     },
     modelScopeToolkit.modelscope_qwen_image,
   );

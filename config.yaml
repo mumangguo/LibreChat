@@ -60,7 +60,7 @@ interface:
     groups: true
     roles: true
   marketplace:
-      use: false
+      use: true
   fileCitations: true
   # Temporary chat retention period in hours (default: 720, min: 1, max: 8760)
   # temporaryChatRetention: 1
@@ -172,6 +172,11 @@ mcpServers:
     type: sse
     url: "https://mcp.api-inference.modelscope.net/143b865a80f840/sse"
     chatMenu: true
+  media-gen-mcp:
+    type: sse
+    url: "https://mcp.api-inference.modelscope.net/5a6e01d6c35e44/sse"
+    timeout: 120000
+    chatMenu: true
 
 # Definition of custom endpoints
 endpoints:
@@ -240,7 +245,7 @@ endpoints:
       apiKey: "${MODELSCOPE_API_KEY}"
       baseURL: "https://api-inference.modelscope.cn/v1"
       models:
-        default: [ "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B","Qwen/Qwen3-VL-235B-A22B-Instruct","Qwen/Qwen3-Coder-480B-A35B-Instruct" ]
+        default: [ "Qwen/Qwen3-VL-235B-A22B-Instruct" ]
         fetch: false
       titleConvo: true
       titleModel: "current_model"
@@ -455,6 +460,46 @@ endpoints:
 #   firecrawlApiKey: '${FIRECRAWL_API_KEY}'
 #   firecrawlApiUrl: '${FIRECRAWL_API_URL}'
 
+# 用户记忆的配置
+memory:
+   # 是否禁用记忆功能
+   disabled: false
+   # 限制记忆键为特定值以限制记忆存储和提高一致性
+   validKeys: ["preferences", "work_info", "personal_info", "skills", "interests", "context"]
+   # 记忆存储的最大令牌限制
+   tokenLimit: 10000
+   # 启用个性化功能（如果配置了记忆，则默认为true）,如果为false，用户将看不到设置中的个性化选项卡
+   personalize: true
+   # Memory agent 配置 - 用于处理记忆的检索和存储
+   # 选项1: 使用内联配置（推荐，使用 Ollama 本地模型）
+   # agent:
+   #  provider: "Ollama"
+#     model: "qwen3"
+#     instructions: "你是一个记忆管理助手。准确存储和管理用户信息，包括用户的身份、偏好、工作信息等。当用户询问关于他们自己的问题时，你应该使用记忆中的信息来回答。"
+#     model_parameters:
+#       temperature: 0.1
+   # 选项2: 如果你想使用 ModelScope，可以取消注释下面的配置并注释掉上面的 agent 配置
+   agent:
+    provider: "Deepseek"
+    model: "deepseek-chat"
+    instructions: |
+      你是一个智能记忆管理助手。分析对话内容，自动提取并存储以下类型的重要信息：
+      1. 用户的身份信息（姓名、昵称、职业、角色等）
+      2. 用户的偏好和习惯（喜欢什么、不喜欢什么、常用方式等）
+      3. 用户的工作和学习信息（工作内容、学习目标、项目等）
+      4. 用户的技能和兴趣（擅长什么、兴趣爱好等）
+      5. 对话中的重要上下文信息（重要事件、关系、背景等）
+      
+      使用 set_memory 工具自动存储这些信息，使用合适的 key（如 personal_info, preferences, work_info, skills, interests, context 等）。
+      如果信息已经存在，使用 set_memory 更新它。
+      只有在用户明确要求删除时，才使用 delete_memory。
+      
+      主动识别并存储重要信息，不要等待用户明确请求。但要确保存储的信息是有价值的、准确的，避免存储无关的临时对话内容。
+    model_parameters:
+      temperature: 0.1
+   # 选项3: 如果你想使用现有 agent，可以取消注释下面的配置并注释掉上面的 agent 配置
+   # agent:
+   #   id: "your-memory-agent-id"
 # Memory configuration for user memories
 # memory:
 #   # (optional) Disable memory functionality
