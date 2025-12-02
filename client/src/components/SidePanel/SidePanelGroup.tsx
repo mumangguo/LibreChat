@@ -45,7 +45,7 @@ const SidePanelGroup = memo(
     const [shouldRenderArtifacts, setShouldRenderArtifacts] = useState(artifacts != null);
 
     const isSmallScreen = useMediaQuery('(max-width: 767px)');
-    const hideSidePanel = useRecoilValue(store.hideSidePanel);
+    // const hideSidePanel = useRecoilValue(store.hideSidePanel);
 
     const calculateLayout = useCallback(() => {
       if (artifacts == null) {
@@ -127,22 +127,22 @@ const SidePanelGroup = memo(
             />
           )}
 
-          {!hideSidePanel && interfaceConfig.sidePanel === true && (
-            <SidePanel
-              panelRef={panelRef}
-              minSize={minSize}
-              setMinSize={setMinSize}
-              isCollapsed={isCollapsed}
-              setIsCollapsed={setIsCollapsed}
-              collapsedSize={collapsedSize}
-              setCollapsedSize={setCollapsedSize}
-              fullCollapse={fullCollapse}
-              setFullCollapse={setFullCollapse}
-              interfaceConfig={interfaceConfig}
-              hasArtifacts={shouldRenderArtifacts}
-              defaultSize={currentLayout[currentLayout.length - 1]}
-            />
-          )}
+          {/*{!hideSidePanel && interfaceConfig.sidePanel === true && (*/}
+          {/*  <SidePanel*/}
+          {/*    panelRef={panelRef}*/}
+          {/*    minSize={minSize}*/}
+          {/*    setMinSize={setMinSize}*/}
+          {/*    isCollapsed={isCollapsed}*/}
+          {/*    setIsCollapsed={setIsCollapsed}*/}
+          {/*    collapsedSize={collapsedSize}*/}
+          {/*    setCollapsedSize={setCollapsedSize}*/}
+          {/*    fullCollapse={fullCollapse}*/}
+          {/*    setFullCollapse={setFullCollapse}*/}
+          {/*    interfaceConfig={interfaceConfig}*/}
+          {/*    hasArtifacts={shouldRenderArtifacts}*/}
+          {/*    defaultSize={currentLayout[currentLayout.length - 1]}*/}
+          {/*  />*/}
+          {/*)}*/}
         </ResizablePanelGroup>
         {artifacts != null && isSmallScreen && (
           <div className="fixed inset-0 z-[100]">{artifacts}</div>

@@ -1,14 +1,29 @@
-import { useState, memo } from 'react';
+import { useState, memo, useMemo } from 'react';
 import { useRecoilState } from 'recoil';
 import * as Select from '@ariakit/react/select';
-import { FileText, LogOut } from 'lucide-react';
-import { LinkIcon, GearIcon, DropdownMenuSeparator, Avatar } from '@librechat/client';
+import { FileText, LogOut, Database, Bookmark, MessageSquareQuote } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  LinkIcon,
+  GearIcon,
+  DropdownMenuSeparator,
+  Avatar,
+  OGDialog,
+  OGDialogContent,
+  OGDialogHeader,
+  OGDialogTitle,
+  Blocks,
+} from '@librechat/client';
 import { useGetStartupConfig, useGetUserBalance } from '~/data-provider';
 import FilesView from '~/components/Chat/Input/Files/FilesView';
+import MemoryViewer from '~/components/SidePanel/Memories/MemoryViewer';
+import BookmarkPanel from '~/components/SidePanel/Bookmarks/BookmarkPanel';
+import PromptsAccordion from '~/components/Prompts/PromptsAccordion';
 import { useAuthContext } from '~/hooks/AuthContext';
 import { useLocalize } from '~/hooks';
 import Settings from './Settings';
 import store from '~/store';
+import { SystemRoles } from 'librechat-data-provider';
 
 function AccountSettings() {
   const localize = useLocalize();
@@ -19,6 +34,12 @@ function AccountSettings() {
   });
   const [showSettings, setShowSettings] = useState(false);
   const [showFiles, setShowFiles] = useRecoilState(store.showFiles);
+  const [showMemories, setShowMemories] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [showPrompts, setShowPrompts] = useState(false);
+  // const [showAttachFiles, setShowAttachFiles] = useState(false);
+  const navigate = useNavigate();
+  const isAdmin = useMemo(() => user?.role === SystemRoles.ADMIN, [user?.role]);
 
   return (
     <Select.SelectProvider>
@@ -62,12 +83,54 @@ function AccountSettings() {
         )}
         <Select.SelectItem
           value=""
+          onClick={() => setShowMemories(true)}
+          className="select-item text-sm"
+        >
+          <Database className="icon-md" aria-hidden="true" />
+          {localize('com_ui_memories')}
+        </Select.SelectItem>
+        {/*<Select.SelectItem*/}
+        {/*  value=""*/}
+        {/*  onClick={() => setShowAttachFiles(true)}*/}
+        {/*  className="select-item text-sm"*/}
+        {/*>*/}
+        {/*  <AttachmentIcon className="icon-md" aria-hidden="true" />*/}
+        {/*  {localize('com_sidepanel_attach_files')}*/}
+        {/*</Select.SelectItem>*/}
+        <Select.SelectItem
+          value=""
+          onClick={() => setShowPrompts(true)}
+          className="select-item text-sm"
+        >
+          <MessageSquareQuote className="icon-md" aria-hidden="true" />
+          {localize('com_ui_prompts')}
+        </Select.SelectItem>
+        <Select.SelectItem
+          value=""
           onClick={() => setShowFiles(true)}
           className="select-item text-sm"
         >
           <FileText className="icon-md" aria-hidden="true" />
           {localize('com_nav_my_files')}
         </Select.SelectItem>
+        <Select.SelectItem
+          value=""
+          onClick={() => setShowBookmarks(true)}
+          className="select-item text-sm"
+        >
+          <Bookmark className="icon-md" aria-hidden="true" />
+          {localize('com_ui_bookmarks')}
+        </Select.SelectItem>
+        {isAdmin && (
+          <Select.SelectItem
+            value=""
+            onClick={() => navigate('/agent-management')}
+            className="select-item text-sm"
+          >
+            <Blocks className="icon-md" aria-hidden="true" />
+            {localize('com_nav_agent_management')}
+          </Select.SelectItem>
+        )}
         {startupConfig?.helpAndFaqURL !== '/' && (
           <Select.SelectItem
             value=""
@@ -98,6 +161,54 @@ function AccountSettings() {
         </Select.SelectItem>
       </Select.SelectPopover>
       {showFiles && <FilesView open={showFiles} onOpenChange={setShowFiles} />}
+      {showMemories && (
+        <OGDialog open={showMemories} onOpenChange={setShowMemories}>
+          <OGDialogContent className="w-11/12 max-w-4xl bg-background text-text-primary">
+            <OGDialogHeader>
+              <OGDialogTitle>{localize('com_ui_memories')}</OGDialogTitle>
+            </OGDialogHeader>
+            <div className="max-h-[70vh]">
+              <MemoryViewer />
+            </div>
+          </OGDialogContent>
+        </OGDialog>
+      )}
+      {showPrompts && (
+        <OGDialog open={showPrompts} onOpenChange={setShowPrompts}>
+          <OGDialogContent className="w-11/12 max-w-4xl bg-background text-text-primary">
+            <OGDialogHeader>
+              <OGDialogTitle>{localize('com_ui_prompts')}</OGDialogTitle>
+            </OGDialogHeader>
+            <div className="max-h-[70vh]">
+              <PromptsAccordion />
+            </div>
+          </OGDialogContent>
+        </OGDialog>
+      )}
+      {/*{showAttachFiles && (*/}
+      {/*  <OGDialog open={showAttachFiles} onOpenChange={setShowAttachFiles}>*/}
+      {/*    <OGDialogContent className="w-11/12 max-w-4xl bg-background text-text-primary">*/}
+      {/*      <OGDialogHeader>*/}
+      {/*        <OGDialogTitle>{localize('com_sidepanel_attach_files')}</OGDialogTitle>*/}
+      {/*      </OGDialogHeader>*/}
+      {/*      <div className="max-h-[70vh]">*/}
+      {/*        <FilesPanel />*/}
+      {/*      </div>*/}
+      {/*    </OGDialogContent>*/}
+      {/*  </OGDialog>*/}
+      {/*)}*/}
+      {showBookmarks && (
+        <OGDialog open={showBookmarks} onOpenChange={setShowBookmarks}>
+          <OGDialogContent className="w-11/12 max-w-4xl bg-background text-text-primary">
+            <OGDialogHeader>
+              <OGDialogTitle>{localize('com_ui_bookmarks')}</OGDialogTitle>
+            </OGDialogHeader>
+            <div className="max-h-[70vh]">
+              <BookmarkPanel />
+            </div>
+          </OGDialogContent>
+        </OGDialog>
+      )}
       {showSettings && <Settings open={showSettings} onOpenChange={setShowSettings} />}
     </Select.SelectProvider>
   );

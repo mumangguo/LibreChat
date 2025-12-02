@@ -12,27 +12,27 @@ export default function Footer({ className }: { className?: string }) {
   const privacyPolicy = config?.interface?.privacyPolicy;
   const termsOfService = config?.interface?.termsOfService;
 
-  const privacyPolicyRender = privacyPolicy?.externalUrl != null && (
-    <a
-      className="text-text-secondary underline"
-      href={privacyPolicy.externalUrl}
-      target={privacyPolicy.openNewTab === true ? '_blank' : undefined}
-      rel="noreferrer"
-    >
-      {localize('com_ui_privacy_policy')}
-    </a>
-  );
-
-  const termsOfServiceRender = termsOfService?.externalUrl != null && (
-    <a
-      className="text-text-secondary underline"
-      href={termsOfService.externalUrl}
-      target={termsOfService.openNewTab === true ? '_blank' : undefined}
-      rel="noreferrer"
-    >
-      {localize('com_ui_terms_of_service')}
-    </a>
-  );
+  // const privacyPolicyRender = privacyPolicy?.externalUrl != null && (
+  //   <a
+  //     className="text-text-secondary underline"
+  //     href={privacyPolicy.externalUrl}
+  //     target={privacyPolicy.openNewTab === true ? '_blank' : undefined}
+  //     rel="noreferrer"
+  //   >
+  //     {localize('com_ui_privacy_policy')}
+  //   </a>
+  // );
+  //
+  // const termsOfServiceRender = termsOfService?.externalUrl != null && (
+  //   <a
+  //     className="text-text-secondary underline"
+  //     href={termsOfService.externalUrl}
+  //     target={termsOfService.openNewTab === true ? '_blank' : undefined}
+  //     rel="noreferrer"
+  //   >
+  //     {localize('com_ui_terms_of_service')}
+  //   </a>
+  // );
 
   // const mainContentParts = (
   //   typeof config?.customFooter === 'string'
@@ -84,9 +84,11 @@ export default function Footer({ className }: { className?: string }) {
     </React.Fragment>
   ));
 
-  const footerElements = [...mainContentRender, privacyPolicyRender, termsOfServiceRender].filter(
-    Boolean,
-  );
+  // const footerElements = [...mainContentRender, privacyPolicyRender, termsOfServiceRender].filter(
+  //   Boolean,
+  // );
+
+  const footerElements = [...mainContentRender].filter(Boolean);
 
   return (
     <div className="relative w-full">
