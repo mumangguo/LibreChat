@@ -200,7 +200,7 @@ export default function AgentListTable({ onEdit }: AgentListTableProps) {
                       onClick={() => onEdit(agent.id)}
                       className="h-8 w-8 p-0"
                     >
-                      <EditIcon className="h-4 w-4" />
+                      <EditIcon className="h-4 w-4 text-yellow-500" />
                     </Button>
                   </TooltipAnchor>
                   <OGDialog>

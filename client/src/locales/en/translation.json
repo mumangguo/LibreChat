@@ -1338,6 +1338,7 @@
   "com_ui_agent_list": "Agent list",
   "com_ui_agent_create": "Create agents",
   "com_ui_agent_delete": "Delete agents",
+  "com_ui_agent_edit": "Edit agents",
   "com_ui_agent_confirm_delete": "Are you sure you want to delete the agent? This action cannot be undone.",
   "com_ui_not_found_agent": "There are no intelligent agents for the time being",
   "com_ui_agent_table_name": "name",

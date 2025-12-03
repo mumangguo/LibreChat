@@ -1334,6 +1334,7 @@
   "com_ui_agent_list": "智能体列表",
   "com_ui_agent_create": "创建智能体",
   "com_ui_agent_delete": "删除智能体",
+  "com_ui_agent_edit": "编辑智能体",
   "com_ui_agent_confirm_delete": "确定要删除该智能体吗？此操作无法撤销。",
   "com_ui_not_found_agent": "暂无智能体",
   "com_ui_agent_table_name": "名称",

@@ -66,9 +66,9 @@ const AgentPanelSwitchWithAgentId = ({
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h3 className="text-base font-semibold text-text-primary">
-          {agentId ? '编辑智能体' : '创建智能体'}
+          {agentId ? localize('com_ui_agent_edit') : localize('com_ui_agent_create')}
         </h3>
-        <Button variant="ghost" onClick={onClose} className="h-8">
+        <Button variant="submit" onClick={onClose}>
           {localize('com_ui_close')}
         </Button>
       </div>
