@@ -4,6 +4,7 @@ import { useLocalize, useHasAccess } from '~/hooks';
 import { useGetStartupConfig, useGetEndpointsQuery } from '~/data-provider';
 import AgentPanelSwitch from '~/components/SidePanel/Agents/AgentPanelSwitch';
 import MCPPanel from '~/components/SidePanel/MCP/MCPPanel';
+import ModelSelector from '~/components/Chat/Menus/Endpoints/ModelSelector';
 
 // 定义Tab类型
 type TabKey = 'modelConfig' | 'agentManagement';
@@ -70,13 +71,13 @@ const AgentManagementTab = () => {
     );
   }, [startupConfig?.mcpServers]);
 
-  // 2. 定义各Tab对应的内容（这里假设“模型规格配置”的内容后续补充，先占位）
+  // 2. 定义各Tab对应的内容
   const renderTabContent = () => {
     switch (activeTab) {
       case 'modelConfig':
         return (
           <div className="flex flex-col gap-4">
-          {/* TODO: 模型规格配置 */}
+            <ModelSelector startupConfig={startupConfig} />
           </div>
         );
       case 'agentManagement':
