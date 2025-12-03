@@ -1334,5 +1334,14 @@
   "com_ui_zoom_in": "Zoom in",
   "com_ui_zoom_level": "Zoom level",
   "com_ui_zoom_out": "Zoom out",
-  "com_user_message": "You"
+  "com_user_message": "You",
+  "com_ui_agent_list": "Agent list",
+  "com_ui_agent_create": "Create agents",
+  "com_ui_agent_delete": "Delete agents",
+  "com_ui_agent_confirm_delete": "Are you sure you want to delete the agent? This action cannot be undone.",
+  "com_ui_not_found_agent": "There are no intelligent agents for the time being",
+  "com_ui_agent_table_name": "name",
+  "com_ui_agent_table_description": "description",
+  "com_ui_agent_table_id": "ID / Category",
+  "com_ui_agent_table_operate": "Operate"
 }

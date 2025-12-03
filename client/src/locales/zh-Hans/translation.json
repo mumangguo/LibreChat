@@ -1330,5 +1330,14 @@
   "com_ui_zoom_in": "放大",
   "com_ui_zoom_level": "缩放级别",
   "com_ui_zoom_out": "缩小",
-  "com_user_message": "您"
+  "com_user_message": "您",
+  "com_ui_agent_list": "智能体列表",
+  "com_ui_agent_create": "创建智能体",
+  "com_ui_agent_delete": "删除智能体",
+  "com_ui_agent_confirm_delete": "确定要删除该智能体吗？此操作无法撤销。",
+  "com_ui_not_found_agent": "暂无智能体",
+  "com_ui_agent_table_name": "名称",
+  "com_ui_agent_table_description": "描述",
+  "com_ui_agent_table_id": "ID / 类别",
+  "com_ui_agent_table_operate": "操作"
 }
