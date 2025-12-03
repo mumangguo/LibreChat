@@ -307,19 +307,18 @@ const ChatForm = memo(({ index = 0 }: { index?: number }) => {
               )}
             >
               <div
-                className={cn(
-                  'flex items-center gap-3',
-                  isRTL ? 'flex-row-reverse' : 'flex-row',
-                )}
+                className={cn('flex items-center gap-3', isRTL ? 'flex-row-reverse' : 'flex-row')}
               >
                 <div className={`${isRTL ? 'mr-2' : 'ml-2'}`}>
                   <AttachFileChat conversation={conversation} disableInputs={disableInputs} />
                 </div>
                 <AgentQuickSelect />
               </div>
-              <div className="flex-1 min-w-[220px]">
+              <div className="min-w-[220px] flex-1">
                 <BadgeRow
-                  showEphemeralBadges={!isAgentsEndpoint(endpoint) && !isAssistantsEndpoint(endpoint)}
+                  showEphemeralBadges={
+                    !isAgentsEndpoint(endpoint) && !isAssistantsEndpoint(endpoint)
+                  }
                   isSubmitting={isSubmitting || isSubmittingAdded}
                   conversationId={conversationId}
                   onChange={setBadges}

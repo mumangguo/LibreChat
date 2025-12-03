@@ -18,12 +18,8 @@ const AgentQuickSelect = () => {
   const localize = useLocalize();
   const { conversation, setConversation } = useChatContext();
   const agentsMap = useAgentsMapContext();
-  const agents: t.Agent[] = useMemo(
-    () => (agentsMap ? Object.values(agentsMap) : []),
-    [agentsMap],
-  );
+  const agents: t.Agent[] = useMemo(() => (agentsMap ? Object.values(agentsMap) : []), [agentsMap]);
   const isLoading = !agentsMap;
-
   const selectedAgentId = conversation?.agent_id ?? '';
   const [isApplyingDefault, setIsApplyingDefault] = useState(false);
   const lastConversationId = useRef<string | null>(null);
@@ -33,12 +29,10 @@ const AgentQuickSelect = () => {
       if (!agent) {
         return;
       }
-
       setConversation((prev) => {
         if (!prev) {
           return prev;
         }
-
         return {
           ...prev,
           endpoint: EModelEndpoint.agents,
@@ -90,17 +84,15 @@ const AgentQuickSelect = () => {
 
   return (
     <div className="flex flex-col gap-1 text-xs text-text-secondary">
-      {/* <span>{localize('com_ui_agent')}</span> */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2 truncate"
+          <button
+            className="my-1 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-border-light bg-surface-secondary px-3 py-2 text-sm text-text-primary hover:bg-surface-tertiary disabled:cursor-not-allowed disabled:opacity-50"
             disabled={agents.length === 0 && !isLoading}
+            aria-label={localize('com_ui_select_agent')}
           >
             {isLoading ? (
-              <Spinner className="size-3.5" />
+              <Spinner className="size-3.5 flex-shrink-0" />
             ) : (
               <>
                 <img
@@ -108,14 +100,14 @@ const AgentQuickSelect = () => {
                   alt={label}
                   className="h-4 w-4 flex-shrink-0 rounded-full object-cover"
                 />
-                <span className="max-w-[150px] truncate text-sm text-text-primary">{label}</span>
+                <span className="max-w-[150px] flex-grow truncate text-left">{label}</span>
+                <ChevronsUpDown className="size-3 flex-shrink-0 text-text-secondary" />
               </>
             )}
-            <ChevronsUpDown className="size-3 text-text-secondary" />
-          </Button>
+          </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          className="max-h-64 w-56 overflow-y-auto"
+          className="max-h-64 w-56 overflow-y-auto rounded-xl border border-border-light bg-surface-secondary"
           align="start"
           sideOffset={4}
         >
@@ -131,8 +123,9 @@ const AgentQuickSelect = () => {
                   key={agent.id}
                   onClick={() => handleSelect(agent.id)}
                   className={cn(
-                    'flex cursor-pointer items-center gap-2 text-sm',
-                    selectedAgentId === agent.id && 'bg-surface-secondary text-text-primary',
+                    'flex cursor-pointer items-center gap-2 px-3 py-2 text-sm hover:bg-surface-tertiary',
+                    'text-text-primary',
+                    selectedAgentId === agent.id && 'bg-surface-tertiary',
                   )}
                 >
                   <img
@@ -152,4 +145,3 @@ const AgentQuickSelect = () => {
 };
 
 export default AgentQuickSelect;
-
