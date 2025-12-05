@@ -48,6 +48,14 @@ export const userPlugins = () => `${BASE_URL}/api/user/plugins`;
 
 export const deleteUser = () => `${BASE_URL}/api/user/delete`;
 
+export const listUsers = () => `${BASE_URL}/api/user/list`;
+
+export const createUser = () => `${BASE_URL}/api/user`;
+
+export const updateUserById = (user_id: string) => `${BASE_URL}/api/user/${user_id}`;
+
+export const deleteUserById = (user_id: string) => `${BASE_URL}/api/user/${user_id}`;
+
 const messagesRoot = `${BASE_URL}/api/messages`;
 
 export const messages = (params: q.MessagesListParams) => {
@@ -171,6 +179,20 @@ export const cancelMCPOAuth = (serverName: string) => {
 };
 
 export const config = () => `${BASE_URL}/api/config`;
+export const configManagement = {
+  customEndpoints: {
+    list: () => `${BASE_URL}/api/config/endpoints/custom`,
+    create: () => `${BASE_URL}/api/config/endpoints/custom`,
+    update: (index: number) => `${BASE_URL}/api/config/endpoints/custom/${index}`,
+    delete: (index: number) => `${BASE_URL}/api/config/endpoints/custom/${index}`,
+  },
+  mcpServers: {
+    list: () => `${BASE_URL}/api/config/mcp/servers`,
+    create: () => `${BASE_URL}/api/config/mcp/servers`,
+    update: (name: string) => `${BASE_URL}/api/config/mcp/servers/${name}`,
+    delete: (name: string) => `${BASE_URL}/api/config/mcp/servers/${name}`,
+  },
+};
 
 export const prompts = () => `${BASE_URL}/api/prompts`;
 

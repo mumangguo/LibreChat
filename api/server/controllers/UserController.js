@@ -282,6 +282,241 @@ const deleteUserController = async (req, res) => {
   }
 };
 
+const listUsersController = async (req, res) => {
+  try {
+    // Only admin can list users
+    if (req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Forbidden: Admin access required' });
+    }
+
+    const users = await User.find(
+      {},
+      'id name username email avatar role provider createdAt updatedAt',
+    )
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Remove sensitive fields and format response
+    const safeUsers = users.map((user) => {
+      const userObj = { ...user };
+      delete userObj.password;
+      delete userObj.totpSecret;
+      delete userObj.backupCodes;
+      delete userObj.refreshToken;
+      return {
+        id: userObj._id?.toString() || userObj.id,
+        name: userObj.name || '',
+        username: userObj.username || '',
+        email: userObj.email || '',
+        avatar: userObj.avatar || '',
+        role: userObj.role || 'USER',
+        provider: userObj.provider || 'local',
+        createdAt: userObj.createdAt?.toISOString() || '',
+        updatedAt: userObj.updatedAt?.toISOString() || '',
+      };
+    });
+
+    res.status(200).json({ data: safeUsers });
+  } catch (error) {
+    logger.error('[listUsersController] Error listing users:', error);
+    res.status(500).json({ message: 'Error listing users' });
+  }
+};
+
+const deleteUserByIdController = async (req, res) => {
+  try {
+    // Only admin can delete users
+    if (req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Forbidden: Admin access required' });
+    }
+
+    const { user_id } = req.params;
+    const currentUserId = req.user.id;
+
+    // Prevent self-deletion
+    if (user_id === currentUserId) {
+      return res.status(400).json({ message: 'Cannot delete your own account' });
+    }
+
+    const targetUser = await User.findById(user_id);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Use the same deletion logic as deleteUserController
+    await deleteMessages({ user: user_id });
+    await deleteAllUserSessions({ userId: user_id });
+    await Transaction.deleteMany({ user: user_id });
+    await deleteUserKey({ userId: user_id, all: true });
+    await Balance.deleteMany({ user: targetUser._id });
+    await deletePresets(user_id);
+    try {
+      await deleteConvos(user_id);
+    } catch (error) {
+      logger.error('[deleteUserByIdController] Error deleting user convos', error);
+    }
+    await deleteUserPluginAuth(user_id, null, true);
+    await deleteUserById(user_id);
+    await deleteAllSharedLinks(user_id);
+    await deleteFiles(null, user_id);
+    await deleteToolCalls(user_id);
+    await deleteUserAgents(user_id);
+    await Assistant.deleteMany({ user: user_id });
+    await ConversationTag.deleteMany({ user: user_id });
+    await MemoryEntry.deleteMany({ userId: user_id });
+    await Action.deleteMany({ user: user_id });
+    await Token.deleteMany({ userId: user_id });
+    await Group.updateMany({ memberIds: user_id }, { $pull: { memberIds: user_id } });
+    await AclEntry.deleteMany({ principalId: targetUser._id });
+
+    logger.info(`Admin deleted user. Email: ${targetUser.email} ID: ${user_id}`);
+    res.status(200).send({ message: 'User deleted' });
+  } catch (err) {
+    logger.error('[deleteUserByIdController]', err);
+    return res.status(500).json({ message: 'Something went wrong.' });
+  }
+};
+
+const createUserController = async (req, res) => {
+  try {
+    // Only admin can create users
+    if (req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Forbidden: Admin access required' });
+    }
+
+    const { email, username, name, password, role } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required' });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const { SystemRoles } = require('librechat-data-provider');
+    const { createUser: createUserModel } = require('~/models');
+    const { getAppConfig } = require('~/server/services/Config');
+
+    const appConfig = await getAppConfig({ role: req.user?.role });
+    const salt = bcrypt.genSaltSync(10);
+    const hashedPassword = bcrypt.hashSync(password, salt);
+
+    const newUserData = {
+      email: email.toLowerCase(),
+      username: username || '',
+      name: name || username || '',
+      password: hashedPassword,
+      role: role || SystemRoles.USER,
+      provider: 'local',
+      emailVerified: true, // Admin created users are auto-verified
+    };
+
+    const newUser = await createUserModel(newUserData, appConfig.balance, true, true);
+
+    // Format response
+    const userObj = newUser.toObject ? newUser.toObject() : { ...newUser };
+    delete userObj.password;
+    delete userObj.totpSecret;
+    delete userObj.backupCodes;
+    delete userObj.refreshToken;
+
+    res.status(201).json({
+      id: userObj._id?.toString() || userObj.id,
+      name: userObj.name || '',
+      username: userObj.username || '',
+      email: userObj.email || '',
+      avatar: userObj.avatar || '',
+      role: userObj.role || 'USER',
+      provider: userObj.provider || 'local',
+      createdAt: userObj.createdAt?.toISOString() || '',
+      updatedAt: userObj.updatedAt?.toISOString() || '',
+    });
+  } catch (error) {
+    logger.error('[createUserController] Error creating user:', error);
+    res.status(500).json({ message: 'Error creating user' });
+  }
+};
+
+const updateUserByIdController = async (req, res) => {
+  try {
+    // Only admin can update users
+    if (req.user?.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Forbidden: Admin access required' });
+    }
+
+    const { user_id } = req.params;
+    const { name, username, email, role, password } = req.body;
+
+    const targetUser = await User.findById(user_id);
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (username !== undefined) updateData.username = username;
+    if (email !== undefined) {
+      // Check if email is already taken by another user
+      const existingUser = await User.findOne({
+        email: email.toLowerCase(),
+        _id: { $ne: user_id },
+      });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+      updateData.email = email.toLowerCase();
+    }
+    if (role !== undefined) {
+      const { SystemRoles } = require('librechat-data-provider');
+      if (role !== SystemRoles.ADMIN && role !== SystemRoles.USER) {
+        return res.status(400).json({ message: 'Invalid role' });
+      }
+      updateData.role = role;
+    }
+    if (password !== undefined && password !== '') {
+      const bcrypt = require('bcryptjs');
+      const salt = bcrypt.genSaltSync(10);
+      updateData.password = bcrypt.hashSync(password, salt);
+    }
+
+    const updatedUser = await updateUser(user_id, updateData);
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Format response
+    const userObj = updatedUser.toObject ? updatedUser.toObject() : { ...updatedUser };
+    delete userObj.password;
+    delete userObj.totpSecret;
+    delete userObj.backupCodes;
+    delete userObj.refreshToken;
+
+    res.status(200).json({
+      id: userObj._id?.toString() || userObj.id,
+      name: userObj.name || '',
+      username: userObj.username || '',
+      email: userObj.email || '',
+      avatar: userObj.avatar || '',
+      role: userObj.role || 'USER',
+      provider: userObj.provider || 'local',
+      createdAt: userObj.createdAt?.toISOString() || '',
+      updatedAt: userObj.updatedAt?.toISOString() || '',
+    });
+  } catch (error) {
+    logger.error('[updateUserByIdController] Error updating user:', error);
+    res.status(500).json({ message: 'Error updating user' });
+  }
+};
+
 const verifyEmailController = async (req, res) => {
   try {
     const verifyEmailService = await verifyEmail(req);
@@ -420,4 +655,8 @@ module.exports = {
   verifyEmailController,
   updateUserPluginsController,
   resendVerificationController,
+  listUsersController,
+  deleteUserByIdController,
+  createUserController,
+  updateUserByIdController,
 };

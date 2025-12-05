@@ -90,6 +90,40 @@ export function getUser(): Promise<t.TUser> {
   return request.get(endpoints.user());
 }
 
+export function listUsers(): Promise<{ data: t.TUser[] }> {
+  return request.get(endpoints.listUsers());
+}
+
+export function createUser(payload: {
+  email: string;
+  username?: string;
+  name?: string;
+  password?: string;
+  role?: string;
+}): Promise<t.TUser> {
+  return request.post(endpoints.createUser(), payload);
+}
+
+export function updateUserById({
+  user_id,
+  data,
+}: {
+  user_id: string;
+  data: {
+    name?: string;
+    username?: string;
+    email?: string;
+    role?: string;
+    password?: string;
+  };
+}): Promise<t.TUser> {
+  return request.put(endpoints.updateUserById(user_id), data);
+}
+
+export function deleteUserById({ user_id }: { user_id: string }): Promise<void> {
+  return request.delete(endpoints.deleteUserById(user_id));
+}
+
 export function getUserBalance(): Promise<t.TBalanceResponse> {
   return request.get(endpoints.balance());
 }
@@ -964,4 +998,52 @@ export function getGraphApiToken(params: q.GraphTokenParams): Promise<q.GraphTok
 
 export function getDomainServerBaseUrl(): string {
   return `${endpoints.apiBaseUrl()}/api`;
+}
+
+// Config Management - Custom Endpoints
+export function getCustomEndpoints(): Promise<{ success: boolean; data: any[] }> {
+  return request.get(endpoints.configManagement.customEndpoints.list());
+}
+
+export function createCustomEndpoint(
+  payload: any,
+): Promise<{ success: boolean; message: string }> {
+  return request.post(endpoints.configManagement.customEndpoints.create(), payload);
+}
+
+export function updateCustomEndpoint(
+  index: number,
+  payload: any,
+): Promise<{ success: boolean; message: string }> {
+  return request.put(endpoints.configManagement.customEndpoints.update(index), payload);
+}
+
+export function deleteCustomEndpoint(
+  index: number,
+): Promise<{ success: boolean; message: string }> {
+  return request.delete(endpoints.configManagement.customEndpoints.delete(index));
+}
+
+// Config Management - MCP Servers
+export function getMCPServers(): Promise<{ success: boolean; data: any[] }> {
+  return request.get(endpoints.configManagement.mcpServers.list());
+}
+
+export function createMCPServer(
+  payload: any,
+): Promise<{ success: boolean; message: string }> {
+  return request.post(endpoints.configManagement.mcpServers.create(), payload);
+}
+
+export function updateMCPServer(
+  name: string,
+  payload: any,
+): Promise<{ success: boolean; message: string }> {
+  return request.put(endpoints.configManagement.mcpServers.update(name), payload);
+}
+
+export function deleteMCPServer(
+  name: string,
+): Promise<{ success: boolean; message: string }> {
+  return request.delete(endpoints.configManagement.mcpServers.delete(name));
 }

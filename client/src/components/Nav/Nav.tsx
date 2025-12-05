@@ -158,15 +158,15 @@ const Nav = memo(
     const headerButtons = useMemo(
       () => (
         <>
-          <Suspense fallback={null}>
+          {/*<Suspense fallback={null}>
             <AgentMarketplaceButton isSmallScreen={isSmallScreen} toggleNav={toggleNavVisible} />
-          </Suspense>
+          </Suspense>*/}
           {hasAccessToBookmarks && (
             <>
               <div className="mt-1.5" />
-              <Suspense fallback={null}>
+              {/*<Suspense fallback={null}>
                 <BookmarkNav tags={tags} setTags={setTags} isSmallScreen={isSmallScreen} />
-              </Suspense>
+              </Suspense>*/}
             </>
           )}
         </>

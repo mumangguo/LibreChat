@@ -393,7 +393,7 @@ class BaseClient {
    *
    * @param {Object} params
    * @param {TMessage[]} params.messages - An array of messages, each with a `tokenCount` property. The messages should be ordered from oldest to newest.
-   * @param {number} [params.maxContextTokens] - The max number of tokens allowed in the context. If not provided, defaults to `this.maxContextTokens`.
+   * @param {number} [params.maxContextTokens] - 上下文中允许的最大token数量。如果没有提供，默认为“this.maxContextTokens”。
    * @param {{ role: 'system', content: text, tokenCount: number }} [params.instructions] - Instructions already added to the context at index 0.
    * @returns {Promise<{
    *  context: TMessage[],
@@ -414,6 +414,12 @@ class BaseClient {
     const messages = [..._messages];
 
     const context = [];
+    logger.info('[BaseClient] 多轮上下文: 计算初始窗口');
+    logger.info({
+      maxContextTokens: maxContextTokens ?? this.maxContextTokens,
+      instructionsTokenCount,
+      remainingContextTokens,
+    });
 
     if (currentTokenCount < remainingContextTokens) {
       while (messages.length > 0 && currentTokenCount < remainingContextTokens) {
@@ -440,6 +446,12 @@ class BaseClient {
 
     const prunedMemory = messages;
     remainingContextTokens -= currentTokenCount;
+    logger.info('[BaseClient] 多轮上下文: 窗口裁剪完成');
+    logger.info({
+      contextCount: context.length,
+      prunedCount: prunedMemory.length,
+      remainingContextTokens,
+    });
 
     return {
       context: context.reverse(),
@@ -470,6 +482,7 @@ class BaseClient {
     }
 
     if (this.clientName === EModelEndpoint.agents) {
+      logger.info('[BaseClient] 多轮上下文: Agents endpoint，跳过工具输出截断');
       const { dbMessages, editedIndices } = truncateToolCallOutputs(
         orderedMessages,
         this.maxContextTokens,
@@ -487,13 +500,19 @@ class BaseClient {
 
     let orderedWithInstructions = this.addInstructions(orderedMessages, instructions);
 
+    logger.info('[BaseClient] 多轮上下文: 进入上下文策略');
+    logger.info({
+      strategy: this.contextStrategy,
+      orderedWithInstructions: orderedWithInstructions,
+    });
     let { context, remainingContextTokens, messagesToRefine } =
       await this.getMessagesWithinTokenLimit({
         messages: orderedWithInstructions,
         instructions,
       });
 
-    logger.debug('[BaseClient] Context Count (1/2)', {
+    logger.info('[BaseClient] Context Count (1/2)');
+    logger.info({
       remainingContextTokens,
       maxContextTokens: this.maxContextTokens,
     });
@@ -502,7 +521,7 @@ class BaseClient {
     let summaryTokenCount;
     let { shouldSummarize } = this;
 
-    // Calculate the difference in length to determine how many messages were discarded if any
+    // 计算长度差异，以确定丢弃了多少消息（如果有的话）
     let payload;
     let { length } = formattedMessages;
     length += instructions != null ? 1 : 0;
@@ -547,6 +566,11 @@ class BaseClient {
       summaryTokenCount = firstMessage.summaryTokenCount;
       payload.unshift(summaryMessage);
       remainingContextTokens -= summaryTokenCount;
+      logger.info('[BaseClient] 多轮上下文: 复用历史摘要');
+      logger.info({
+        summaryMessageId: firstMessage.messageId,
+        summaryTokenCount,
+      });
     } else if (shouldSummarize && messagesToRefine.length > 0) {
       ({ summaryMessage, summaryTokenCount } = await this.summarizeMessages({
         messagesToRefine,
@@ -554,12 +578,22 @@ class BaseClient {
       }));
       summaryMessage && payload.unshift(summaryMessage);
       remainingContextTokens -= summaryTokenCount;
+      if (summaryMessage) {
+        logger.info('[BaseClient] 多轮上下文: 生成新的摘要');
+        logger.info({
+          refinedCount: messagesToRefine.length,
+          summaryTokenCount,
+        });
+      } else {
+        logger.info('[BaseClient] 多轮上下文: 摘要生成失败，保持原上下文');
+      }
     }
 
     // Make sure to only continue summarization logic if the summary message was generated
     shouldSummarize = summaryMessage != null && shouldSummarize === true;
 
-    logger.debug('[BaseClient] Context Count (2/2)', {
+    logger.info('[BaseClient] Context Count (2/2)');
+    logger.info({
       remainingContextTokens,
       maxContextTokens: this.maxContextTokens,
     });
@@ -581,12 +615,19 @@ class BaseClient {
         map[messageId] = currentPayload[index].tokenCount;
         return map;
       }, {});
+      logger.info('[BaseClient] 多轮上下文: 构建 tokenCountMap 完成');
+      logger.info({
+        trackedMessages: Object.keys(tokenCountMap ?? {}).length,
+        includesSummary: Boolean(tokenCountMap?.summaryMessage),
+      });
     }
 
     const promptTokens = this.maxContextTokens - remainingContextTokens;
 
-    logger.debug('[BaseClient] tokenCountMap:', tokenCountMap);
-    logger.debug('[BaseClient]', {
+    logger.info('[BaseClient] tokenCountMap:');
+    logger.info(tokenCountMap);
+    logger.info('[BaseClient]');
+    logger.info({
       promptTokens,
       remainingContextTokens,
       payloadSize: payload.length,
@@ -597,6 +638,8 @@ class BaseClient {
   }
 
   async sendMessage(message, opts = {}) {
+    logger.info('发送给LLM之前的用户消息:');
+    logger.info(message);
     const appConfig = this.options.req?.config;
     /** @type {Promise<TMessage>} */
     let userMessagePromise;
@@ -666,17 +709,23 @@ class BaseClient {
       this.getBuildMessagesOptions(opts),
       opts,
     );
-    logger.info('[BaseClient] 6.构建消息结束', this.buildLogContext({
-      promptTokens,
-      payloadSize: payload?.length ?? 0,
-      buildDurationMs: Date.now() - buildStart,
-    }));
+    logger.info('[BaseClient] 6.构建消息结束');
+    logger.info(
+      this.buildLogContext({
+        promptTokens,
+        payloadSize: payload?.length ?? 0,
+        buildDurationMs: Date.now() - buildStart,
+        payload: payload,
+      }),
+    );
 
     if (tokenCountMap) {
-      logger.debug('[BaseClient] tokenCountMap', tokenCountMap);
+      logger.info('[BaseClient] tokenCountMap:');
+      logger.info(tokenCountMap);
       if (tokenCountMap[userMessage.messageId]) {
         userMessage.tokenCount = tokenCountMap[userMessage.messageId];
-        logger.debug('[BaseClient] userMessage', userMessage);
+        logger.info('[BaseClient] userMessage:');
+        logger.info(userMessage);
       }
 
       this.handleTokenCountMap(tokenCountMap);
@@ -711,14 +760,29 @@ class BaseClient {
       });
     }
 
-    logger.info('[BaseClient] 开始调用完成调度', this.buildLogContext({
-      payloadSize: payload?.length ?? 0,
-    }));
+    try {
+      logger.info('[BaseClient] 即将发送给LLM的完整提示词（含系统/历史/工具/记忆）');
+      logger.info(JSON.stringify(payload, null, 2));
+    } catch (error) {
+      logger.warn('[BaseClient] 无法序列化提示词，改为直接打印。', error);
+      logger.info(payload);
+    }
+
+    logger.info('[BaseClient] 开始调用完成调度');
+    logger.info(
+      this.buildLogContext({
+        payloadSize: payload?.length ?? 0,
+        payload: payload,
+      }),
+    );
     const completionStart = Date.now();
     const { completion, metadata } = await this.sendCompletion(payload, opts);
-    logger.info('[BaseClient] 完成调度结束', this.buildLogContext({
-      completionDurationMs: Date.now() - completionStart,
-    }));
+    logger.info('[BaseClient] 完成调度结束');
+    logger.info(
+      this.buildLogContext({
+        completionDurationMs: Date.now() - completionStart,
+      }),
+    );
     if (this.abortController) {
       this.abortController.requestCompleted = true;
     }
@@ -829,10 +893,13 @@ class BaseClient {
     );
     this.savedMessageIds.add(responseMessage.messageId);
     delete responseMessage.tokenCount;
-    logger.info('[BaseClient] sendMessage completed', this.buildLogContext({
-      responseMessageId,
-      totalDurationMs: Date.now() - sendStart,
-    }));
+    logger.info('[BaseClient] sendMessage completed');
+    logger.info(
+      this.buildLogContext({
+        responseMessageId,
+        totalDurationMs: Date.now() - sendStart,
+      }),
+    );
     return responseMessage;
   }
 

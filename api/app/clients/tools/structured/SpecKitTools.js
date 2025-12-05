@@ -1,7 +1,5 @@
 const { z } = require('zod');
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 const { tool } = require('@langchain/core/tools');
 const { getEnvironmentVariable } = require('@langchain/core/utils/env');
 const { logger } = require('@librechat/data-schemas');
@@ -100,7 +98,6 @@ class SpecKitAgent {
   constructor(options = {}) {
     this.llm = new DeepSeekLLM(options);
     this.artifacts = new Map(); // In-memory artifact store (no file persistence)
-    this.templateDir = path.join(__dirname, 'speckit-templates', 'prompts');
   }
 
   load(artifact) {
@@ -110,16 +107,6 @@ class SpecKitAgent {
   save(artifact, content) {
     this.artifacts.set(artifact, content);
     return content;
-  }
-
-  readTemplate(templateName) {
-    try {
-      const templatePath = path.join(this.templateDir, `${templateName}.md`);
-      return fs.readFileSync(templatePath, 'utf8');
-    } catch (error) {
-      logger.error(`Failed to read template ${templateName}: ${error.message}`);
-      throw new Error(`Template ${templateName} not found.`);
-    }
   }
 
   aggregate(artifacts = null) {
@@ -134,43 +121,134 @@ class SpecKitAgent {
     return parts.join('\n\n');
   }
 
-  async generatePersona(mission) {
-    const template = this.readTemplate('wechat_persona');
-    const prompt = template.replace('$ARGUMENTS', mission);
+  async generateConstitution(mission) {
+    const previousConstitution = this.load('constitution');
+    const prompt = `Mission:
+${mission}
+
+Previous constitution (optional):
+${previousConstitution}
+
+Craft a refreshed Spec Kit constitution with sections:
+## Project Principles
+## Engineering Guardrails
+## Delivery Rituals
+Each section must contain numbered lists with actionable statements.`;
+    logger.info('项目宪法的提示词：' + prompt);
     const text = await this.llm.call(prompt);
-    return this.save('persona', text);
+    return this.save('constitution', text);
   }
 
-  async generateContentSpec(mission, persona) {
-    const template = this.readTemplate('wechat_content');
-    const prompt = template
-      .replace('$ARGUMENTS', mission)
-      .replace('{{persona}}', persona);
+  async generateSpec(mission, constitution) {
+    const previousSpec = this.load('spec');
+    const prompt = `Mission:
+${mission}
 
+Constitution:
+${constitution}
+
+Previous spec (optional):
+${previousSpec}
+
+Write a Spec Kit specification in Markdown with sections:
+## Summary
+## Personas & Jobs-to-be-Done
+## User Stories
+## Functional Requirements
+## Non-Functional Requirements
+## Acceptance Criteria
+## Risks & Open Questions
+Keep each section actionable and reference the constitution when reinforcing constraints.`;
+    logger.info('项目规范说明书的提示词：' + prompt);
     const text = await this.llm.call(prompt);
-    return this.save('content', text);
+    return this.save('spec', text);
   }
 
-  async generateVisualPlan(mission, persona, content) {
-    const template = this.readTemplate('wechat_visual');
-    const prompt = template
-      .replace('$ARGUMENTS', mission)
-      .replace('{{persona}}', persona)
-      .replace('{{content}}', content);
+  async generatePlan(mission, constitution, spec) {
+    const previousPlan = this.load('plan');
+    const prompt = `Mission:
+${mission}
 
+Constitution:
+${constitution}
+
+Specification:
+${spec}
+
+Previous plan (optional):
+${previousPlan}
+
+Create an implementation plan with sections:
+## Architecture Overview
+## Key Decisions
+## Implementation Steps
+## Testing Strategy
+## Deployment & Operations
+Anchor the plan in the constitution and spec, include explicit sequencing and checkpoints.`;
+    logger.info('项目实施计划的提示词：' + prompt);
     const text = await this.llm.call(prompt);
-    return this.save('visual', text);
+    return this.save('plan', text);
   }
 
-  async generateMoments(persona, content, visual) {
-    const template = this.readTemplate('wechat_generate');
-    const prompt = template
-      .replace('{{persona}}', persona)
-      .replace('{{content}}', content)
-      .replace('{{visual}}', visual);
+  async generateTasks(plan, spec, constitution) {
+    const prompt = `Plan:
+${plan}
 
+Specification:
+${spec}
+
+Constitution:
+${constitution}
+
+Translate the plan into a Markdown table with columns: Story, Task, Definition of Done, Dependencies.
+Group tasks per user story and ensure each task references guardrails.`;
+    logger.info('项目任务清单的提示词：' + prompt);
     const text = await this.llm.call(prompt);
-    return this.save('moments', text);
+    return this.save('tasks', text);
+  }
+
+  async generateImplementation(plan, tasks, constitution) {
+    const prompt = `Plan:
+${plan}
+
+Tasks:
+${tasks}
+
+Constitution:
+${constitution}
+
+Write an implementation brief with sections:
+## Build Order
+## Quality Gates
+## Deployment Readiness Checklist
+## Observability & Runbooks
+Focus on how the team will execute the plan safely and measurably.`;
+    logger.info('项目实施方案的提示词：' + prompt);
+    const text = await this.llm.call(prompt);
+    return this.save('implementation', text);
+  }
+
+  async generateAnalysis(constitution, spec, plan, tasks) {
+    const prompt = `Constitution:
+${constitution}
+
+Spec:
+${spec}
+
+Plan:
+${plan}
+
+Tasks:
+${tasks}
+
+Provide a Spec Kit alignment report with sections:
+## Critical Gaps
+## Emerging Risks
+## Recommended Follow-ups
+Highlight contradictions or missing coverage. Keep the tone factual.`;
+    logger.info('项目交叉工件分析的提示词：' + prompt);
+    const text = await this.llm.call(prompt);
+    return this.save('analysis', text);
   }
 
   async answerQuestion(question, artifacts = null) {
@@ -190,7 +268,7 @@ ${context}
 Question: ${question}
 
 Provide a concise yet complete answer, referencing the most relevant sections.`;
-
+    logger.info('项目问答的提示词：' + prompt);
     return await this.llm.call(prompt);
   }
 }
@@ -207,14 +285,14 @@ function getAgent(userId, options = {}) {
 
 // Tool definitions
 const specKitToolkit = {
-  speckit_persona: {
-    name: 'speckit_persona',
+  speckit_constitution: {
+    name: 'speckit_constitution',
     description:
-      'Define the target audience (Age groups) and Brand Voice for WeChat Moments. Use this first.',
+      'Establish project principles, engineering guardrails, and delivery rituals. This is the foundation of Spec-Driven Development. Use this first to set up the project constitution.',
     schema: z.object({
       mission: z
         .string()
-        .describe('The product, service, or topic to promote.'),
+        .describe('High-level mission or problem statement to drive the workflow.'),
       model: z.string().optional().describe('DeepSeek model identifier (default: deepseek-chat).'),
       baseUrl: z.string().url().optional().describe('Override DeepSeek API base URL.'),
       temperature: z
@@ -226,12 +304,12 @@ const specKitToolkit = {
       maxTokens: z.number().optional().describe('Maximum tokens per request (default: 2048).'),
     }),
   },
-  speckit_content: {
-    name: 'speckit_content',
+  speckit_specify: {
+    name: 'speckit_specify',
     description:
-      'Create a content strategy (Angles, Key Messages, Emotional Hooks) based on the Persona. Requires persona to be generated first.',
+      'Create a baseline specification with personas, user stories, functional/non-functional requirements, and acceptance criteria. Requires constitution to be generated first.',
     schema: z.object({
-      mission: z.string().describe('The product, service, or topic to promote.'),
+      mission: z.string().describe('High-level mission or problem statement.'),
       model: z.string().optional().describe('DeepSeek model identifier (default: deepseek-chat).'),
       baseUrl: z.string().url().optional().describe('Override DeepSeek API base URL.'),
       temperature: z
@@ -243,12 +321,12 @@ const specKitToolkit = {
       maxTokens: z.number().optional().describe('Maximum tokens per request (default: 2048).'),
     }),
   },
-  speckit_visual: {
-    name: 'speckit_visual',
+  speckit_plan: {
+    name: 'speckit_plan',
     description:
-      'Plan the visual strategy (Image Style, Layout - Single vs 9-Grid) for WeChat Moments. Requires persona and content to be generated first.',
+      'Create an implementation plan with architecture overview, key decisions, implementation steps, testing strategy, and deployment operations. Requires constitution and spec to be generated first.',
     schema: z.object({
-      mission: z.string().describe('The product, service, or topic to promote.'),
+      mission: z.string().describe('High-level mission or problem statement.'),
       model: z.string().optional().describe('DeepSeek model identifier (default: deepseek-chat).'),
       baseUrl: z.string().url().optional().describe('Override DeepSeek API base URL.'),
       temperature: z
@@ -260,10 +338,81 @@ const specKitToolkit = {
       maxTokens: z.number().optional().describe('Maximum tokens per request (default: 2048).'),
     }),
   },
-  speckit_generate: {
-    name: 'speckit_generate',
+  speckit_tasks: {
+    name: 'speckit_tasks',
     description:
-      'Generate the final WeChat Moments Copy and Image Prompts. Requires persona, content, and visual plans to be generated first.',
+      'Generate actionable tasks from the plan, organized by user story with definitions of done and dependencies. Requires plan, spec, and constitution to be generated first.',
+    schema: z.object({
+      model: z.string().optional().describe('DeepSeek model identifier (default: deepseek-chat).'),
+      baseUrl: z.string().url().optional().describe('Override DeepSeek API base URL.'),
+      temperature: z
+        .number()
+        .min(0)
+        .max(2)
+        .optional()
+        .describe('Sampling temperature (default: 0.2).'),
+      maxTokens: z.number().optional().describe('Maximum tokens per request (default: 2048).'),
+    }),
+  },
+  speckit_implement: {
+    name: 'speckit_implement',
+    description:
+      'Generate implementation brief with build order, quality gates, deployment readiness checklist, and observability runbooks. Requires plan, tasks, and constitution to be generated first.',
+    schema: z.object({
+      model: z.string().optional().describe('DeepSeek model identifier (default: deepseek-chat).'),
+      baseUrl: z.string().url().optional().describe('Override DeepSeek API base URL.'),
+      temperature: z
+        .number()
+        .min(0)
+        .max(2)
+        .optional()
+        .describe('Sampling temperature (default: 0.2).'),
+      maxTokens: z.number().optional().describe('Maximum tokens per request (default: 2048).'),
+    }),
+  },
+  speckit_analyze: {
+    name: 'speckit_analyze',
+    description:
+      'Generate a cross-artifact alignment report highlighting critical gaps, emerging risks, and recommended follow-ups. Requires constitution, spec, plan, and tasks to be generated first.',
+    schema: z.object({
+      model: z.string().optional().describe('DeepSeek model identifier (default: deepseek-chat).'),
+      baseUrl: z.string().url().optional().describe('Override DeepSeek API base URL.'),
+      temperature: z
+        .number()
+        .min(0)
+        .max(2)
+        .optional()
+        .describe('Sampling temperature (default: 0.2).'),
+      maxTokens: z.number().optional().describe('Maximum tokens per request (default: 2048).'),
+    }),
+  },
+  speckit_clarify: {
+    name: 'speckit_clarify',
+    description:
+      'Ask structured questions to de-risk ambiguous areas before planning. Use this before speckit_plan if you need to clarify requirements.',
+    schema: z.object({
+      mission: z.string().describe('High-level mission or problem statement.'),
+      questions: z
+        .string()
+        .optional()
+        .describe(
+          'Specific areas or topics to clarify. If not provided, the tool will generate relevant questions.',
+        ),
+      model: z.string().optional().describe('DeepSeek model identifier (default: deepseek-chat).'),
+      baseUrl: z.string().url().optional().describe('Override DeepSeek API base URL.'),
+      temperature: z
+        .number()
+        .min(0)
+        .max(2)
+        .optional()
+        .describe('Sampling temperature (default: 0.2).'),
+      maxTokens: z.number().optional().describe('Maximum tokens per request (default: 2048).'),
+    }),
+  },
+  speckit_checklist: {
+    name: 'speckit_checklist',
+    description:
+      'Generate quality checklists to validate requirements completeness, clarity, and consistency. Use this after speckit_plan to ensure quality.',
     schema: z.object({
       model: z.string().optional().describe('DeepSeek model identifier (default: deepseek-chat).'),
       baseUrl: z.string().url().optional().describe('Override DeepSeek API base URL.'),
@@ -279,14 +428,14 @@ const specKitToolkit = {
   speckit_answer: {
     name: 'speckit_answer',
     description:
-      'Answer questions based on previously generated artifacts. Use this to query the generated documentation.',
+      'Answer questions based on previously generated artifacts (constitution, spec, plan, tasks, etc.). Use this to query the generated documentation.',
     schema: z.object({
       question: z.string().describe('The question to answer based on generated artifacts.'),
       artifacts: z
         .array(z.string())
         .optional()
         .describe(
-          'Specific artifacts to use as context (e.g., ["persona", "content"]). If not provided, all artifacts will be used.',
+          'Specific artifacts to use as context (e.g., ["constitution", "spec"]). If not provided, all artifacts will be used.',
         ),
       model: z.string().optional().describe('DeepSeek model identifier (default: deepseek-chat).'),
       baseUrl: z.string().url().optional().describe('Override DeepSeek API base URL.'),
@@ -314,7 +463,7 @@ function createSpecKitTools(options = {}) {
 
   const tools = [];
 
-  // Persona tool
+  // Constitution tool
   tools.push(
     tool(async ({ mission, model, baseUrl, temperature, maxTokens }, runnableConfig) => {
       const agent = getAgent(userId, {
@@ -324,17 +473,17 @@ function createSpecKitTools(options = {}) {
         temperature: temperature ?? llmOptions.temperature,
         maxTokens: maxTokens || llmOptions.maxTokens,
       });
-      logger.info('1.开始创建用户画像 (Persona)');
+      logger.info('1.开始创建项目宪法');
       try {
-        const result = await agent.generatePersona(mission);
+        const result = await agent.generateConstitution(mission);
         return result;
       } catch (error) {
-        throw new Error(`Failed to generate persona: ${error.message}`);
+        throw new Error(`Failed to generate constitution: ${error.message}`);
       }
-    }, specKitToolkit.speckit_persona),
+    }, specKitToolkit.speckit_constitution),
   );
 
-  // Content tool
+  // Specify tool
   tools.push(
     tool(async ({ mission, model, baseUrl, temperature, maxTokens }, runnableConfig) => {
       const agent = getAgent(userId, {
@@ -344,52 +493,51 @@ function createSpecKitTools(options = {}) {
         temperature: temperature ?? llmOptions.temperature,
         maxTokens: maxTokens || llmOptions.maxTokens,
       });
-      logger.info('2.开始创建内容策略 (Content Strategy)');
+      logger.info('2.开始创建项目规范说明书');
       try {
-        const persona = agent.load('persona');
-        if (!persona) {
+        const constitution = agent.load('constitution');
+        if (!constitution) {
           throw new Error(
-            'Persona must be generated first. Use speckit_persona before speckit_content.',
+            'Constitution must be generated first. Use speckit_constitution before speckit_specify.',
+          );
+        }
+        const result = await agent.generateSpec(mission, constitution);
+        return result;
+      } catch (error) {
+        throw new Error(`Failed to generate spec: ${error.message}`);
+      }
+    }, specKitToolkit.speckit_specify),
+  );
+
+  // Plan tool
+  tools.push(
+    tool(async ({ mission, model, baseUrl, temperature, maxTokens }, runnableConfig) => {
+      const agent = getAgent(userId, {
+        ...llmOptions,
+        model: model || llmOptions.model,
+        baseUrl: baseUrl || llmOptions.baseUrl,
+        temperature: temperature ?? llmOptions.temperature,
+        maxTokens: maxTokens || llmOptions.maxTokens,
+      });
+      logger.info('3.开始创建项目实施计划');
+      try {
+        const constitution = agent.load('constitution');
+        const spec = agent.load('spec');
+        if (!constitution || !spec) {
+          throw new Error(
+            'Constitution and spec must be generated first. Use speckit_constitution and speckit_specify before speckit_plan.',
           );
         }
 
-        const result = await agent.generateContentSpec(mission, persona);
+        const result = await agent.generatePlan(mission, constitution, spec);
         return result;
       } catch (error) {
-        throw new Error(`Failed to generate content strategy: ${error.message}`);
+        throw new Error(`Failed to generate plan: ${error.message}`);
       }
-    }, specKitToolkit.speckit_content),
+    }, specKitToolkit.speckit_plan),
   );
 
-  // Visual tool
-  tools.push(
-    tool(async ({ mission, model, baseUrl, temperature, maxTokens }, runnableConfig) => {
-      const agent = getAgent(userId, {
-        ...llmOptions,
-        model: model || llmOptions.model,
-        baseUrl: baseUrl || llmOptions.baseUrl,
-        temperature: temperature ?? llmOptions.temperature,
-        maxTokens: maxTokens || llmOptions.maxTokens,
-      });
-      logger.info('3.开始创建视觉策略 (Visual Strategy)');
-      try {
-        const persona = agent.load('persona');
-        const content = agent.load('content');
-        if (!persona || !content) {
-          throw new Error(
-            'Persona and Content Strategy must be generated first. Use speckit_persona and speckit_content before speckit_visual.',
-          );
-        }
-
-        const result = await agent.generateVisualPlan(mission, persona, content);
-        return result;
-      } catch (error) {
-        throw new Error(`Failed to generate visual strategy: ${error.message}`);
-      }
-    }, specKitToolkit.speckit_visual),
-  );
-
-  // Generate tool
+  // Tasks tool
   tools.push(
     tool(async ({ model, baseUrl, temperature, maxTokens }, runnableConfig) => {
       const agent = getAgent(userId, {
@@ -399,23 +547,176 @@ function createSpecKitTools(options = {}) {
         temperature: temperature ?? llmOptions.temperature,
         maxTokens: maxTokens || llmOptions.maxTokens,
       });
-      logger.info('4.开始生成朋友圈文案与图片提示词 (Generate Moments)');
+      logger.info('4.开始创建项目任务清单');
       try {
-        const persona = agent.load('persona');
-        const content = agent.load('content');
-        const visual = agent.load('visual');
-        if (!persona || !content || !visual) {
+        const plan = agent.load('plan');
+        const spec = agent.load('spec');
+        const constitution = agent.load('constitution');
+        if (!plan || !spec || !constitution) {
           throw new Error(
-            'Persona, Content, and Visual Strategy must be generated first. Use speckit_persona, speckit_content, and speckit_visual before speckit_generate.',
+            'Plan, spec, and constitution must be generated first. Use speckit_plan, speckit_specify, and speckit_constitution before speckit_tasks.',
           );
         }
 
-        const result = await agent.generateMoments(persona, content, visual);
+        const result = await agent.generateTasks(plan, spec, constitution);
         return result;
       } catch (error) {
-        throw new Error(`Failed to generate moments: ${error.message}`);
+        throw new Error(`Failed to generate tasks: ${error.message}`);
       }
-    }, specKitToolkit.speckit_generate),
+    }, specKitToolkit.speckit_tasks),
+  );
+
+  // Implementation tool
+  tools.push(
+    tool(async ({ model, baseUrl, temperature, maxTokens }, runnableConfig) => {
+      const agent = getAgent(userId, {
+        ...llmOptions,
+        model: model || llmOptions.model,
+        baseUrl: baseUrl || llmOptions.baseUrl,
+        temperature: temperature ?? llmOptions.temperature,
+        maxTokens: maxTokens || llmOptions.maxTokens,
+      });
+      logger.info('5.开始创建项目实施方案');
+      try {
+        const plan = agent.load('plan');
+        const tasks = agent.load('tasks');
+        const constitution = agent.load('constitution');
+        if (!plan || !tasks || !constitution) {
+          throw new Error(
+            'Plan, tasks, and constitution must be generated first. Use speckit_plan, speckit_tasks, and speckit_constitution before speckit_implement.',
+          );
+        }
+
+        const result = await agent.generateImplementation(plan, tasks, constitution);
+        return result;
+      } catch (error) {
+        throw new Error(`Failed to generate implementation: ${error.message}`);
+      }
+    }, specKitToolkit.speckit_implement),
+  );
+
+  // Analysis tool
+  tools.push(
+    tool(async ({ model, baseUrl, temperature, maxTokens }, runnableConfig) => {
+      const agent = getAgent(userId, {
+        ...llmOptions,
+        model: model || llmOptions.model,
+        baseUrl: baseUrl || llmOptions.baseUrl,
+        temperature: temperature ?? llmOptions.temperature,
+        maxTokens: maxTokens || llmOptions.maxTokens,
+      });
+
+      try {
+        const constitution = agent.load('constitution');
+        const spec = agent.load('spec');
+        const plan = agent.load('plan');
+        const tasks = agent.load('tasks');
+        if (!constitution || !spec || !plan || !tasks) {
+          throw new Error(
+            'Constitution, spec, plan, and tasks must be generated first. Use speckit_constitution, speckit_specify, speckit_plan, and speckit_tasks before speckit_analyze.',
+          );
+        }
+
+        const result = await agent.generateAnalysis(constitution, spec, plan, tasks);
+        return result;
+      } catch (error) {
+        throw new Error(`Failed to generate analysis: ${error.message}`);
+      }
+    }, specKitToolkit.speckit_analyze),
+  );
+
+  // Clarify tool
+  tools.push(
+    tool(async ({ mission, questions, model, baseUrl, temperature, maxTokens }, runnableConfig) => {
+      const agent = getAgent(userId, {
+        ...llmOptions,
+        model: model || llmOptions.model,
+        baseUrl: baseUrl || llmOptions.baseUrl,
+        temperature: temperature ?? llmOptions.temperature,
+        maxTokens: maxTokens || llmOptions.maxTokens,
+      });
+
+      try {
+        const prompt = questions
+          ? `Mission:
+${mission}
+
+Areas to clarify:
+${questions}
+
+Generate structured questions to de-risk ambiguous areas in the mission. Focus on:
+- Requirements clarity
+- Technical constraints
+- User expectations
+- Success criteria
+- Potential risks
+
+Provide questions in a clear, actionable format.`
+          : `Mission:
+${mission}
+
+Generate structured questions to de-risk ambiguous areas before planning. Focus on:
+- Requirements clarity
+- Technical constraints
+- User expectations
+- Success criteria
+- Potential risks
+
+Provide questions in a clear, actionable format.`;
+
+        const result = await agent.llm.call(prompt);
+        return result;
+      } catch (error) {
+        throw new Error(`Failed to generate clarification questions: ${error.message}`);
+      }
+    }, specKitToolkit.speckit_clarify),
+  );
+
+  // Checklist tool
+  tools.push(
+    tool(async ({ model, baseUrl, temperature, maxTokens }, runnableConfig) => {
+      const agent = getAgent(userId, {
+        ...llmOptions,
+        model: model || llmOptions.model,
+        baseUrl: baseUrl || llmOptions.baseUrl,
+        temperature: temperature ?? llmOptions.temperature,
+        maxTokens: maxTokens || llmOptions.maxTokens,
+      });
+
+      try {
+        const constitution = agent.load('constitution');
+        const spec = agent.load('spec');
+        const plan = agent.load('plan');
+        if (!constitution || !spec || !plan) {
+          throw new Error(
+            'Constitution, spec, and plan must be generated first. Use speckit_constitution, speckit_specify, and speckit_plan before speckit_checklist.',
+          );
+        }
+
+        const prompt = `Constitution:
+${constitution}
+
+Specification:
+${spec}
+
+Plan:
+${plan}
+
+Generate quality checklists to validate:
+- Requirements completeness
+- Requirements clarity
+- Requirements consistency
+- Alignment with constitution
+- Plan feasibility
+
+Provide checklists in a clear, actionable format with checkboxes.`;
+
+        const result = await agent.llm.call(prompt);
+        return result;
+      } catch (error) {
+        throw new Error(`Failed to generate checklist: ${error.message}`);
+      }
+    }, specKitToolkit.speckit_checklist),
   );
 
   // Answer tool

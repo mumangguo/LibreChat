@@ -11,11 +11,15 @@ import ActionsPanel from '~/components/SidePanel/Agents/ActionsPanel';
 import VersionPanel from '~/components/SidePanel/Agents/Version/VersionPanel';
 import AgentMCPPanel from '~/components/SidePanel/Agents/MCPPanel';
 import AgentListTable from '~/components/Agents/AgentListTable';
+import UserListTable from '~/components/Agents/UserListTable';
 import MCPPanelSettings from '~/components/SidePanel/MCP/MCPPanel';
 import ModelSelector from '~/components/Chat/Menus/Endpoints/ModelSelector';
+import AgentMarketplace from '~/components/Agents/Marketplace';
+import ModelConfigManagement from '~/components/Agents/ModelConfigManagement';
+import MCPManagement from '~/components/Agents/MCPManagement';
 
 // 定义Tab类型
-type TabKey = 'modelConfig' | 'agentManagement' | 'mcpSettings';
+type TabKey = 'modelConfig' | 'agentManagement' | 'mcpSettings' | 'userManagement' | 'agentMarket';
 
 const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
   <div className="bg-surface-secondary/40 rounded-xl border border-border-light p-4">
@@ -159,6 +163,7 @@ const AgentManagementTab = () => {
         return (
           <div className="flex flex-col gap-4">
             <ModelSelector startupConfig={startupConfig} />
+            <ModelConfigManagement />
           </div>
         );
       case 'agentManagement':
@@ -188,7 +193,6 @@ const AgentManagementTab = () => {
                         setEditingAgentId(undefined);
                         setShowAgentBuilder(true);
                       }}
-                      className="bg-green-600 hover:bg-green-700"
                     >
                       <Plus />
                       {localize('com_ui_agent_create')}
@@ -210,11 +214,27 @@ const AgentManagementTab = () => {
       case 'mcpSettings':
         return (
           <div className="flex flex-col gap-4">
-            {showMCPSettings && (
-              <Section title={localize('com_nav_setting_mcp')}>
-                <MCPPanelSettings />
-              </Section>
-            )}
+            {/*<MCPPanelSettings />*/}
+            <MCPManagement />
+          </div>
+        );
+      case 'userManagement':
+        return (
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-text-primary">
+                {localize('com_nav_user_management')}
+              </h2>
+            </div>
+            <div className="bg-surface-secondary/40 rounded-xl border border-border-light p-4">
+              <UserListTable onEdit={(userId) => console.log('Edit user:', userId)} />
+            </div>
+          </div>
+        );
+      case 'agentMarket':
+        return (
+          <div className="flex flex-col gap-4">
+            <AgentMarketplace className="w-full" />
           </div>
         );
       default:
@@ -262,6 +282,26 @@ const AgentManagementTab = () => {
           onClick={() => setActiveTab('mcpSettings')}
         >
           {localize('com_nav_setting_mcp')}
+        </button>
+        <button
+          className={`px-4 py-2 text-sm font-medium ${
+            activeTab === 'userManagement'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          onClick={() => setActiveTab('userManagement')}
+        >
+          {localize('com_nav_user_management')}
+        </button>
+        <button
+          className={`px-4 py-2 text-sm font-medium ${
+            activeTab === 'agentMarket'
+              ? 'border-b-2 border-primary text-primary'
+              : 'text-text-secondary hover:text-text-primary'
+          }`}
+          onClick={() => setActiveTab('agentMarket')}
+        >
+          {localize('com_agents_marketplace')}
         </button>
       </div>
 

@@ -1,8 +1,8 @@
 const MAX_CHAR = 255;
 
 /**
- * Truncates a given text to a specified maximum length, appending ellipsis and a notification
- * if the original text exceeds the maximum length.
+ * 将给定文本截断至指定最大长度，附加省略号和通知
+ * 如果原文超过最大长度。
  *
  * @param {string} text - The text to be truncated.
  * @param {number} [maxLength=MAX_CHAR] - The maximum length of the text after truncation. Defaults to MAX_CHAR.
@@ -16,13 +16,13 @@ function truncateText(text, maxLength = MAX_CHAR) {
 }
 
 /**
- * Truncates a given text to a specified maximum length by showing the first half and the last half of the text,
- * separated by ellipsis. This method ensures the output does not exceed the maximum length, including the addition
- * of ellipsis and notification if the original text exceeds the maximum length.
+ * 通过显示文本的前半部分和后半部分，将给定文本截断至指定的最大长度，
+ * 用省略号分隔。该方法确保输出不超过最大长度，包括加法
+ * 省略号，若原文超过最大长度则通知。
  *
- * @param {string} text - The text to be truncated.
- * @param {number} [maxLength=MAX_CHAR] - The maximum length of the output text after truncation. Defaults to MAX_CHAR.
- * @returns {string} The truncated text showing the first half and the last half, or the original text if it does not exceed maxLength.
+ * @param {string} text - 被截断的文本
+ * @param {number} [maxLength=MAX_CHAR] - 截断后输出文本的最大长度。默认是MAX_CHAR。
+ * @returns {string} 截断文本显示前半部分和后半部分，或如果不超过最大长度则显示原始文本。
  */
 function smartTruncateText(text, maxLength = MAX_CHAR) {
   const ellipsis = '...';
@@ -38,6 +38,7 @@ function smartTruncateText(text, maxLength = MAX_CHAR) {
 }
 
 /**
+ * 截断工具调用输出
  * @param {TMessage[]} _messages
  * @param {number} maxContextTokens
  * @param {function({role: string, content: TMessageContent[]}): number} getTokenCountForMessage

@@ -298,7 +298,8 @@ class AgentClient extends BaseClient {
     { instructions = null, additional_instructions = null },
     opts,
   ) {
-    logger.info('[AgentClient] buildMessages start', this.buildLogContext({ parentMessageId }));
+    logger.info('[AgentClient] buildMessages start');
+    logger.info(this.buildLogContext({ parentMessageId }));
     let orderedMessages = this.constructor.getMessagesForConversation({
       messages,
       parentMessageId,
@@ -435,6 +436,8 @@ class AgentClient extends BaseClient {
 
     if (systemContent) {
       this.options.agent.instructions = systemContent;
+      logger.info('[AgentClient] 当前系统提示词（含文件上下文/长期记忆）:');
+      logger.info(systemContent);
     }
 
     /** @type {Record<string, number> | undefined} */
@@ -472,14 +475,15 @@ class AgentClient extends BaseClient {
       this.options.agent.instructions = systemContent;
     }
 
+    logger.info('[AgentClient] buildMessages complete');
     logger.info(
-      '[AgentClient] buildMessages complete',
       this.buildLogContext({
         promptTokens,
         payloadSize: result.prompt?.length ?? 0,
       }),
     );
-
+    logger.info('===LLM分析意图(发送给 LLM)结束===');
+    logger.info(result);
     return result;
   }
 
@@ -951,8 +955,8 @@ class AgentClient extends BaseClient {
         //   messages = addCacheControl(messages);
         // }
 
+        logger.info('开始根据用户消息处理记忆...');
         memoryPromise = this.runMemory(messages);
-
         run = await createRun({
           agents,
           indexTokenCountMap,
@@ -976,6 +980,8 @@ class AgentClient extends BaseClient {
         /** @deprecated Agent Chain */
         config.configurable.last_agent_id = agents[agents.length - 1].id;
         logger.info('4.处理流（LLM 会在这里分析意图并决定调用工具）');
+        logger.info(messages);
+        logger.info(config);
         await run.processStream({ messages }, config, {
           callbacks: {
             [Callback.TOOL_ERROR]: logToolError,
@@ -1036,6 +1042,7 @@ class AgentClient extends BaseClient {
     } finally {
       try {
         const attachments = await this.awaitMemoryWithTimeout(memoryPromise);
+        logger.info('总结后的记忆=' + JSON.stringify(attachments, null, 2));
         if (attachments && attachments.length > 0) {
           this.artifactPromises.push(...attachments);
         }

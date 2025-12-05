@@ -55,15 +55,15 @@ export default function Header() {
               !isSmallScreen ? 'transition-all duration-200 ease-in-out' : ''
             } ${!navVisible ? 'translate-x-0' : 'translate-x-[-100px]'}`}
           >
-            {interfaceConfig.presets === true && interfaceConfig.modelSelect && <PresetsMenu />}
-            {hasAccessToBookmarks === true && <BookmarkMenu />}
-            {hasAccessToMultiConvo === true && <AddMultiConvo />}
+            {/*{interfaceConfig.presets === true && interfaceConfig.modelSelect && <PresetsMenu />}*/}
+            {/*{hasAccessToBookmarks === true && <BookmarkMenu />}*/}
+            {/*{hasAccessToMultiConvo === true && <AddMultiConvo />}*/}
             {isSmallScreen && (
               <>
                 <ExportAndShareMenu
                   isSharedButtonEnabled={startupConfig?.sharedLinksEnabled ?? false}
                 />
-                <TemporaryChat />
+                {/*<TemporaryChat />*/}
               </>
             )}
           </div>
@@ -73,7 +73,7 @@ export default function Header() {
             <ExportAndShareMenu
               isSharedButtonEnabled={startupConfig?.sharedLinksEnabled ?? false}
             />
-            <TemporaryChat />
+            {/*<TemporaryChat />*/}
           </div>
         )}
       </div>

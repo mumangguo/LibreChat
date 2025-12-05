@@ -511,6 +511,7 @@ Current Date & Time: ${replaceSpecialVars({ text: '{{iso_datetime}}' })}
   }
   loadedTools.push(...(await Promise.all(mcpToolPromises)).flatMap((plugin) => plugin || []));
   logger.info('4.6 返回已加载的工具实例及其上下文映射，以供调用方使用。');
+  logger.info(loadedTools);
   return { loadedTools, toolContextMap };
 };
 

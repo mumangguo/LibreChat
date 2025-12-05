@@ -81,14 +81,16 @@ function AccountSettings() {
             <DropdownMenuSeparator />
           </>
         )}
-        <Select.SelectItem
-          value=""
-          onClick={() => setShowMemories(true)}
-          className="select-item text-sm"
-        >
-          <Database className="icon-md" aria-hidden="true" />
-          {localize('com_ui_memories')}
-        </Select.SelectItem>
+        {isAdmin && (
+          <Select.SelectItem
+            value=""
+            onClick={() => setShowMemories(true)}
+            className="select-item text-sm"
+          >
+            <Database className="icon-md" aria-hidden="true" />
+            {localize('com_ui_memories')}
+          </Select.SelectItem>
+        )}
         {/*<Select.SelectItem*/}
         {/*  value=""*/}
         {/*  onClick={() => setShowAttachFiles(true)}*/}
@@ -97,14 +99,14 @@ function AccountSettings() {
         {/*  <AttachmentIcon className="icon-md" aria-hidden="true" />*/}
         {/*  {localize('com_sidepanel_attach_files')}*/}
         {/*</Select.SelectItem>*/}
-        <Select.SelectItem
-          value=""
-          onClick={() => setShowPrompts(true)}
-          className="select-item text-sm"
-        >
-          <MessageSquareQuote className="icon-md" aria-hidden="true" />
-          {localize('com_ui_prompts')}
-        </Select.SelectItem>
+        {/*<Select.SelectItem*/}
+        {/*  value=""*/}
+        {/*  onClick={() => setShowPrompts(true)}*/}
+        {/*  className="select-item text-sm"*/}
+        {/*>*/}
+        {/*  <MessageSquareQuote className="icon-md" aria-hidden="true" />*/}
+        {/*  {localize('com_ui_prompts')}*/}
+        {/*</Select.SelectItem>*/}
         <Select.SelectItem
           value=""
           onClick={() => setShowFiles(true)}
@@ -113,14 +115,14 @@ function AccountSettings() {
           <FileText className="icon-md" aria-hidden="true" />
           {localize('com_nav_my_files')}
         </Select.SelectItem>
-        <Select.SelectItem
-          value=""
-          onClick={() => setShowBookmarks(true)}
-          className="select-item text-sm"
-        >
-          <Bookmark className="icon-md" aria-hidden="true" />
-          {localize('com_ui_bookmarks')}
-        </Select.SelectItem>
+        {/*<Select.SelectItem*/}
+        {/*  value=""*/}
+        {/*  onClick={() => setShowBookmarks(true)}*/}
+        {/*  className="select-item text-sm"*/}
+        {/*>*/}
+        {/*  <Bookmark className="icon-md" aria-hidden="true" />*/}
+        {/*  {localize('com_ui_bookmarks')}*/}
+        {/*</Select.SelectItem>*/}
         {isAdmin && (
           <Select.SelectItem
             value=""
@@ -131,16 +133,16 @@ function AccountSettings() {
             {localize('com_nav_agent_management')}
           </Select.SelectItem>
         )}
-        {startupConfig?.helpAndFaqURL !== '/' && (
-          <Select.SelectItem
-            value=""
-            onClick={() => window.open(startupConfig?.helpAndFaqURL, '_blank')}
-            className="select-item text-sm"
-          >
-            <LinkIcon aria-hidden="true" />
-            {localize('com_nav_help_faq')}
-          </Select.SelectItem>
-        )}
+        {/*{startupConfig?.helpAndFaqURL !== '/' && (*/}
+        {/*  <Select.SelectItem*/}
+        {/*    value=""*/}
+        {/*    onClick={() => window.open(startupConfig?.helpAndFaqURL, '_blank')}*/}
+        {/*    className="select-item text-sm"*/}
+        {/*  >*/}
+        {/*    <LinkIcon aria-hidden="true" />*/}
+        {/*    {localize('com_nav_help_faq')}*/}
+        {/*  </Select.SelectItem>*/}
+        {/*)}*/}
         <Select.SelectItem
           value=""
           onClick={() => setShowSettings(true)}

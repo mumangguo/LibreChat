@@ -73,9 +73,12 @@ async function getAppConfig(options = {}) {
  * @returns {Promise<boolean>}
  */
 async function clearAppConfigCache() {
-  const cache = getLogStores(CacheKeys.CONFIG_STORE);
-  const cacheKey = CacheKeys.APP_CONFIG;
-  return await cache.delete(cacheKey);
+  const cache = getLogStores(CacheKeys.APP_CONFIG);
+  // Clear both the general APP_CONFIG cache and the BASE_CONFIG_KEY
+  await cache.delete(BASE_CONFIG_KEY);
+  const configStore = getLogStores(CacheKeys.CONFIG_STORE);
+  await configStore.delete(CacheKeys.APP_CONFIG);
+  return true;
 }
 
 module.exports = {

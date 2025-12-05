@@ -13,6 +13,7 @@ import type { IUser } from '@librechat/data-schemas';
 import type { Agent } from 'librechat-data-provider';
 import type * as t from '~/types';
 import { resolveHeaders, createSafeUser } from '~/utils/env';
+import { logger } from '@librechat/data-schemas';
 
 const customProviders = new Set([
   Providers.XAI,
@@ -152,6 +153,9 @@ export async function createRun({
   for (const agent of agents) {
     buildAgentContext(agent);
   }
+
+  logger.info('创建运行的智能体输入:');
+  logger.info(agentInputs);
 
   const graphConfig: RunConfig['graphConfig'] = {
     signal,

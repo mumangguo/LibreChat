@@ -5,9 +5,10 @@ const getLogStores = require('~/cache/getLogStores');
 const { saveConvo } = require('~/models');
 
 /**
- * Add title to conversation in a way that avoids memory retention
+ * 在对话中添加标题以避免记忆保留
  */
 const addTitle = async (req, { text, response, client }) => {
+  logger.info('生成对话标题:' + text);
   const { TITLE_CONVO = true } = process.env ?? {};
   if (!isEnabled(TITLE_CONVO)) {
     return;
@@ -47,6 +48,7 @@ const addTitle = async (req, { text, response, client }) => {
     }
 
     const title = await titlePromise;
+    logger.info('生成的标题: ' + title);
     if (!abortController.signal.aborted) {
       abortController.abort();
     }
