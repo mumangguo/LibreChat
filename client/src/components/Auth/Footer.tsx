@@ -42,11 +42,14 @@ function Footer({ startupConfig }: { startupConfig: TStartupConfig | null | unde
   // );
 
   return (
-    <div className="align-end m-4 flex justify-center gap-2" role="contentinfo">
+    <div
+      className="align-end m-4 flex justify-center gap-2 text-sm text-gray-500"
+      role="contentinfo"
+    >
       AI 每日朋友圈 | 浙ICP备2021031999号-3 Copyright © 2025-2026 by www.aipyq.com. all rights
       reserved
     </div>
-  )
+  );
 }
 
 export default Footer;

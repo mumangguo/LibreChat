@@ -928,8 +928,8 @@ export function verifyTwoFactorTemp(
 }
 
 /* Memories */
-export const getMemories = (): Promise<q.MemoriesResponse> => {
-  return request.get(endpoints.memories());
+export const getMemories = (userId?: string): Promise<q.MemoriesResponse> => {
+  return request.get(endpoints.memories(userId));
 };
 
 export const deleteMemory = (key: string): Promise<void> => {

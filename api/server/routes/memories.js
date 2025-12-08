@@ -1,6 +1,6 @@
 const express = require('express');
 const { Tokenizer, generateCheckAccess } = require('@librechat/api');
-const { PermissionTypes, Permissions } = require('librechat-data-provider');
+const { PermissionTypes, Permissions, SystemRoles } = require('librechat-data-provider');
 const {
   getAllUserMemories,
   toggleUserMemories,
@@ -50,7 +50,18 @@ router.use(requireJwtAuth);
  */
 router.get('/', checkMemoryRead, configMiddleware, async (req, res) => {
   try {
-    const memories = await getAllUserMemories(req.user.id);
+    const requestedUserId =
+      typeof req.query.userId === 'string' && req.query.userId.trim().length
+        ? req.query.userId.trim()
+        : null;
+    const isAdmin = req.user.role === SystemRoles.ADMIN;
+
+    if (requestedUserId && !isAdmin && requestedUserId !== req.user.id) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const targetUserId = requestedUserId && isAdmin ? requestedUserId : req.user.id;
+    const memories = await getAllUserMemories(targetUserId);
 
     const sortedMemories = memories.sort(
       (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),

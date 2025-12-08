@@ -1,5 +1,5 @@
 /* Memories */
-import { QueryKeys, MutationKeys, dataService } from 'librechat-data-provider';
+import { QueryKeys, MutationKeys, apiBaseUrl, dataService, request } from 'librechat-data-provider';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import type {
   UseQueryOptions,
@@ -9,14 +9,27 @@ import type {
 import type { TUserMemory, MemoriesResponse } from 'librechat-data-provider';
 
 export const useMemoriesQuery = (
+  userIdOrConfig?: string | UseQueryOptions<MemoriesResponse>,
   config?: UseQueryOptions<MemoriesResponse>,
 ): QueryObserverResult<MemoriesResponse> => {
-  return useQuery<MemoriesResponse>([QueryKeys.memories], () => dataService.getMemories(), {
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false,
-    ...config,
-  });
+  const userId = typeof userIdOrConfig === 'string' ? userIdOrConfig : undefined;
+  const queryConfig = (typeof userIdOrConfig === 'object' ? userIdOrConfig : config) ?? {};
+
+  return useQuery<MemoriesResponse>(
+    [QueryKeys.memories, userId ?? 'current'],
+    () =>
+      userId
+        ? request.get<MemoriesResponse>(
+            `${apiBaseUrl()}/api/memories?userId=${encodeURIComponent(userId)}`,
+          )
+        : dataService.getMemories(),
+    {
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      refetchOnMount: false,
+      ...queryConfig,
+    },
+  );
 };
 
 export const useDeleteMemoryMutation = () => {
@@ -86,7 +99,9 @@ export const useCreateMemoryMutation = (
     {
       ...options,
       onSuccess: (data, variables, context) => {
-        queryClient.setQueryData<MemoriesResponse>([QueryKeys.memories], (oldData) => {
+        queryClient.setQueryData<MemoriesResponse>(
+          [QueryKeys.memories, 'current'],
+          (oldData) => {
           if (!oldData) return oldData;
 
           const newMemories = [...oldData.memories, data.memory];
@@ -101,13 +116,14 @@ export const useCreateMemoryMutation = (
             usagePercentage = Math.min(100, Math.round((totalTokens / tokenLimit) * 100));
           }
 
-          return {
-            ...oldData,
-            memories: newMemories,
-            totalTokens,
-            usagePercentage,
-          };
-        });
+            return {
+              ...oldData,
+              memories: newMemories,
+              totalTokens,
+              usagePercentage,
+            };
+          },
+        );
 
         options?.onSuccess?.(data, variables, context);
       },

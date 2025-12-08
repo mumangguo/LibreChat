@@ -134,12 +134,17 @@ const DeleteMemoryButton = ({ memory }: { memory: TUserMemory }) => {
   );
 };
 
+interface MemoryViewerProps {
+  userId?: string;
+}
+
 const pageSize = 10;
-export default function MemoryViewer() {
+export default function MemoryViewer({ userId }: MemoryViewerProps) {
   const localize = useLocalize();
   const { user } = useAuthContext();
-  const { data: userData } = useGetUserQuery();
-  const { data: memData, isLoading } = useMemoriesQuery();
+  const isForeignUser = Boolean(userId && user?.id !== userId);
+  const { data: userData } = useGetUserQuery({ enabled: !isForeignUser });
+  const { data: memData, isLoading } = useMemoriesQuery(userId);
   const { showToast } = useToastContext();
   const [pageIndex, setPageIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -193,6 +198,10 @@ export default function MemoryViewer() {
     permission: Permissions.OPT_OUT,
   });
 
+  const allowUpdate = !isForeignUser && hasUpdateAccess;
+  const allowCreate = !isForeignUser && hasCreateAccess;
+  const allowOptOut = !isForeignUser && hasOptOutAccess;
+
   const memories: TUserMemory[] = useMemo(() => memData?.memories ?? [], [memData]);
 
   const filteredMemories = useMemo(() => {
@@ -245,11 +254,11 @@ export default function MemoryViewer() {
           />
         </div>
         {/* Memory Usage and Toggle Display */}
-        {(memData?.tokenLimit || hasOptOutAccess) && (
+        {(memData?.tokenLimit || allowOptOut) && (
           <div
             className={cn(
               'flex items-center rounded-lg',
-              memData?.tokenLimit != null && hasOptOutAccess ? 'justify-between' : 'justify-end',
+              memData?.tokenLimit != null && allowOptOut ? 'justify-between' : 'justify-end',
             )}
           >
             {/* Usage Display */}
@@ -287,7 +296,7 @@ export default function MemoryViewer() {
             )}
 
             {/* Memory Toggle */}
-            {hasOptOutAccess && (
+            {allowOptOut && (
               <div className="flex items-center gap-2 text-xs">
                 <span>{localize('com_ui_use_memory')}</span>
                 <Switch
@@ -301,7 +310,7 @@ export default function MemoryViewer() {
           </div>
         )}
         {/* Create Memory Button */}
-        {hasCreateAccess && (
+        {allowCreate && (
           <div className="flex w-full justify-end">
             <MemoryCreateDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <OGDialogTrigger asChild>
@@ -323,12 +332,12 @@ export default function MemoryViewer() {
               <TableRow className="border-b border-border-light hover:bg-surface-secondary">
                 <TableHead
                   className={`${
-                    hasUpdateAccess ? 'w-[75%]' : 'w-[100%]'
+                    allowUpdate ? 'w-[75%]' : 'w-[100%]'
                   } bg-surface-secondary py-3 text-left text-sm font-medium text-text-secondary`}
                 >
                   <div>{localize('com_ui_memory')}</div>
                 </TableHead>
-                {hasUpdateAccess && (
+                {allowUpdate && (
                   <TableHead className="w-[25%] bg-surface-secondary py-3 text-center text-sm font-medium text-text-secondary">
                     <div>{localize('com_assistants_actions')}</div>
                   </TableHead>
@@ -342,7 +351,7 @@ export default function MemoryViewer() {
                     key={idx}
                     className="border-b border-border-light hover:bg-surface-secondary"
                   >
-                    <TableCell className={`${hasUpdateAccess ? 'w-[75%]' : 'w-[100%]'} px-4 py-4`}>
+                  <TableCell className={`${allowUpdate ? 'w-[75%]' : 'w-[100%]'} px-4 py-4`}>
                       <div
                         className="overflow-hidden text-ellipsis whitespace-nowrap text-sm text-text-primary"
                         title={memory.value}
@@ -350,7 +359,7 @@ export default function MemoryViewer() {
                         {memory.value}
                       </div>
                     </TableCell>
-                    {hasUpdateAccess && (
+                    {allowUpdate && (
                       <TableCell className="w-[25%] px-4 py-4">
                         <div className="flex justify-center gap-2">
                           <EditMemoryButton memory={memory} />
@@ -362,10 +371,7 @@ export default function MemoryViewer() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell
-                    colSpan={hasUpdateAccess ? 2 : 1}
-                    className="h-24 text-center text-sm text-text-secondary"
-                  >
+                  <TableCell colSpan={allowUpdate ? 2 : 1} className="h-24 text-center text-sm text-text-secondary">
                     {localize('com_ui_no_memories')}
                   </TableCell>
                 </TableRow>

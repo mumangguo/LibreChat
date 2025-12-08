@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, Plus } from 'lucide-react';
+import { Brain, Eye, Plus } from 'lucide-react';
 import {
   Table,
   Button,
@@ -17,6 +17,7 @@ import {
   OGDialogTemplate,
   OGDialogContent,
   OGDialogTitle,
+  OGDialogHeader,
   OGDialogClose,
   Spinner,
 } from '@librechat/client';
@@ -30,6 +31,7 @@ import {
 } from '~/data-provider';
 import { useLocalize, useAuthContext } from '~/hooks';
 import { EndpointIcon } from '~/components/Endpoints';
+import MemoryViewer from '../SidePanel/Memories/MemoryViewer';
 import UserEditForm from './UserEditForm';
 
 interface UserListTableProps {
@@ -53,6 +55,7 @@ export default function UserListTable({ onEdit }: UserListTableProps) {
 
   const [editingUser, setEditingUser] = useState<TUser | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [memoryUser, setMemoryUser] = useState<TUser | null>(null);
 
   const deleteUserMutation = useDeleteUserByIdMutation({
     onSuccess: () => {
@@ -161,6 +164,22 @@ export default function UserListTable({ onEdit }: UserListTableProps) {
         </OGDialog>
       )}
 
+      {memoryUser && (
+        <OGDialog open={!!memoryUser} onOpenChange={(open) => !open && setMemoryUser(null)}>
+          <OGDialogContent className="w-11/12 max-w-4xl bg-background text-text-primary">
+            <OGDialogHeader>
+              <OGDialogTitle>
+                {localize('com_ui_memories')} - {memoryUser.name || memoryUser.username || '-'}
+              </OGDialogTitle>
+            </OGDialogHeader>
+            <div className="max-h-[70vh]">
+              <MemoryViewer userId={memoryUser.id} />
+            </div>
+            <OGDialogClose />
+          </OGDialogContent>
+        </OGDialog>
+      )}
+
       {users.length === 0 ? (
         <div className="flex items-center justify-center p-8">
           <div className="text-sm text-text-secondary">{localize('com_nav_not_found_user')}</div>
@@ -235,6 +254,18 @@ export default function UserListTable({ onEdit }: UserListTableProps) {
                   </TableCell>
                   <TableCell className="px-4 py-4">
                     <div className="flex items-center justify-center gap-2">
+                      {isAdmin && (
+                        <TooltipAnchor description={localize('com_ui_memories')}>
+                          <Button
+                            variant="ghost"
+                            aria-label={localize('com_ui_memories')}
+                            onClick={() => setMemoryUser(user)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Brain className="h-4 w-4 text-purple-500" />
+                          </Button>
+                        </TooltipAnchor>
+                      )}
                       {user.id !== currentUser?.id && (
                         <TooltipAnchor
                           description={

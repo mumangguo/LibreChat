@@ -373,7 +373,8 @@ export const regenerateBackupCodes = () => `${BASE_URL}/api/auth/2fa/backup/rege
 export const verifyTwoFactorTemp = () => `${BASE_URL}/api/auth/2fa/verify-temp`;
 
 /* Memories */
-export const memories = () => `${BASE_URL}/api/memories`;
+export const memories = (userId?: string) =>
+  `${BASE_URL}/api/memories${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`;
 export const memory = (key: string) => `${memories()}/${encodeURIComponent(key)}`;
 export const memoryPreferences = () => `${memories()}/preferences`;
 

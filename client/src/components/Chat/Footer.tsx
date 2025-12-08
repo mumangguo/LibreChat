@@ -1,7 +1,5 @@
 import React, { useEffect } from 'react';
-import ReactMarkdown from 'react-markdown';
 import TagManager from 'react-gtm-module';
-import { Constants } from 'librechat-data-provider';
 import { useGetStartupConfig } from '~/data-provider';
 import { useLocalize } from '~/hooks';
 
@@ -9,45 +7,10 @@ export default function Footer({ className }: { className?: string }) {
   const { data: config } = useGetStartupConfig();
   const localize = useLocalize();
 
-  const privacyPolicy = config?.interface?.privacyPolicy;
-  const termsOfService = config?.interface?.termsOfService;
-
-  // const privacyPolicyRender = privacyPolicy?.externalUrl != null && (
-  //   <a
-  //     className="text-text-secondary underline"
-  //     href={privacyPolicy.externalUrl}
-  //     target={privacyPolicy.openNewTab === true ? '_blank' : undefined}
-  //     rel="noreferrer"
-  //   >
-  //     {localize('com_ui_privacy_policy')}
-  //   </a>
-  // );
-  //
-  // const termsOfServiceRender = termsOfService?.externalUrl != null && (
-  //   <a
-  //     className="text-text-secondary underline"
-  //     href={termsOfService.externalUrl}
-  //     target={termsOfService.openNewTab === true ? '_blank' : undefined}
-  //     rel="noreferrer"
-  //   >
-  //     {localize('com_ui_terms_of_service')}
-  //   </a>
-  // );
-
-  // const mainContentParts = (
-  //   typeof config?.customFooter === 'string'
-  //     ? config.customFooter
-  //     : '[LibreChat ' +
-  //       Constants.VERSION +
-  //       '](https://librechat.ai) - ' +
-  //       localize('com_ui_latest_footer')
-  // ).split('|');
-
-  // 1. 定义一个用 | 连接的字符串
-  const footerString = 'AI 每日朋友圈 | 浙ICP备2021031999号-3  Copyright © 2025-2026 by www.aipyq.com. all rights reserved';
-
-  // 2. 对这个字符串调用 split 方法
-  const mainContentParts = footerString.split('|');
+  const footerLines = [
+    'AI 每日朋友圈',
+    '浙ICP备2021031999号-3  Copyright © 2025-2026 by www.aipyq.com. all rights reserved',
+  ];
 
   useEffect(() => {
     if (config?.analyticsGtmId != null && typeof window.google_tag_manager === 'undefined') {
@@ -58,61 +21,20 @@ export default function Footer({ className }: { className?: string }) {
     }
   }, [config?.analyticsGtmId]);
 
-  const mainContentRender = mainContentParts.map((text, index) => (
-    <React.Fragment key={`main-content-part-${index}`}>
-      <ReactMarkdown
-        components={{
-          a: ({ node: _n, href, children, ...otherProps }) => {
-            return (
-              <a
-                className="text-text-secondary underline"
-                href={href}
-                target="_blank"
-                rel="noreferrer"
-                {...otherProps}
-              >
-                {children}
-              </a>
-            );
-          },
-
-          p: ({ node: _n, ...props }) => <span {...props} />,
-        }}
-      >
-        {text.trim()}
-      </ReactMarkdown>
-    </React.Fragment>
-  ));
-
-  // const footerElements = [...mainContentRender, privacyPolicyRender, termsOfServiceRender].filter(
-  //   Boolean,
-  // );
-
-  const footerElements = [...mainContentRender].filter(Boolean);
-
   return (
     <div className="relative w-full">
       <div
         className={
           className ??
-          'absolute bottom-0 left-0 right-0 hidden items-center justify-center gap-2 px-2 py-2 text-center text-xs text-text-primary sm:flex md:px-[60px]'
+          'absolute bottom-0 left-0 right-0 hidden px-2 py-2 text-center text-xs text-text-primary sm:block md:px-[60px]'
         }
         role="contentinfo"
       >
-        {footerElements.map((contentRender, index) => {
-          const isLastElement = index === footerElements.length - 1;
-          return (
-            <React.Fragment key={`footer-element-${index}`}>
-              {contentRender}
-              {!isLastElement && (
-                <div
-                  key={`separator-${index}`}
-                  className="h-2 border-r-[1px] border-border-medium"
-                />
-              )}
-            </React.Fragment>
-          );
-        })}
+        {footerLines.map((line, index) => (
+          <div key={`footer-line-${index}`} className="leading-relaxed">
+            {line}
+          </div>
+        ))}
       </div>
     </div>
   );
