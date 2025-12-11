@@ -61,6 +61,16 @@ mcpServers:
     url: https://mcp.api-inference.modelscope.net/7c9fccd9d7634d/sse
     timeout: 60000
     chatMenu: false
+  yijing-bazi-mcp:
+    type: sse
+    url: https://mcp.api-inference.modelscope.net/51b747010b2640/sse
+    timeout: 60000
+    chatMenu: false
+  dat-server:
+    type: sse
+    url: http://127.0.0.1:8081/sse
+    timeout: 60000
+    chatMenu: false
 endpoints:
   custom:
     - name: Deepseek

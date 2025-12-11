@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAtomValue } from 'jotai';
 import { useRecoilValue } from 'recoil';
 import { CSSTransition } from 'react-transition-group';
@@ -21,6 +21,7 @@ function MessagesViewContent({
   const { screenshotTargetRef } = useScreenshot();
   const scrollButtonPreference = useRecoilValue(store.showScrollButton);
   const [currentEditId, setCurrentEditId] = useState<number | string | null>(-1);
+  const scrollButtonRef = useRef<HTMLDivElement>(null);
 
   const {
     conversation,
@@ -87,8 +88,11 @@ function MessagesViewContent({
             classNames="scroll-animation"
             unmountOnExit={true}
             appear={true}
+            nodeRef={scrollButtonRef}
           >
-            <ScrollToBottom scrollHandler={handleSmoothToRef} />
+            <div ref={scrollButtonRef}>
+              <ScrollToBottom scrollHandler={handleSmoothToRef} />
+            </div>
           </CSSTransition>
         </div>
       </div>

@@ -1,5 +1,5 @@
 {
-  "name": "aipyq/frontend",
+  "name": "@aipyq/frontend",
   "version": "v0.8.1-rc1",
   "description": "",
   "type": "module",
@@ -21,6 +21,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ant-design/x": "^2.1.1",
     "@ariakit/react": "^0.4.15",
     "@ariakit/react-core": "^0.4.17",
     "@codesandbox/sandpack-react": "^2.19.10",
