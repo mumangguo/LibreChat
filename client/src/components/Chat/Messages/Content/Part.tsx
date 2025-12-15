@@ -134,19 +134,21 @@ const Part = memo(
           />
         );
       } else if (isToolCall) {
-        return (
-          <ToolCall
-            args={toolCall.args ?? ''}
-            name={toolCall.name || ''}
-            output={toolCall.output ?? ''}
-            initialProgress={toolCall.progress ?? 0.1}
-            isSubmitting={isSubmitting}
-            attachments={attachments}
-            auth={toolCall.auth}
-            expires_at={toolCall.expires_at}
-            isLast={isLast}
-          />
-        );
+        // 方法调用通用渲染，暂时屏蔽
+        // 需要将他们迁移到 SidePanel 里去
+        // return (
+        //   <ToolCall
+        //     args={toolCall.args ?? ''}
+        //     name={toolCall.name || ''}
+        //     output={toolCall.output ?? ''}
+        //     initialProgress={toolCall.progress ?? 0.1}
+        //     isSubmitting={isSubmitting}
+        //     attachments={attachments}
+        //     auth={toolCall.auth}
+        //     expires_at={toolCall.expires_at}
+        //     isLast={isLast}
+        //   />
+        // );
       } else if (toolCall.type === ToolCallTypes.CODE_INTERPRETER) {
         const code_interpreter = toolCall[ToolCallTypes.CODE_INTERPRETER];
         return (

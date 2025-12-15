@@ -1,16 +1,16 @@
-import { useState, useCallback, useMemo, memo } from 'react';
+import { useState, useCallback, useMemo, useEffect, memo } from 'react';
 import { getEndpointField } from 'librechat-data-provider';
 import { useUserKeyQuery } from 'librechat-data-provider/react-query';
 import { ResizableHandleAlt, ResizablePanel, useMediaQuery } from '@librechat/client';
 import type { TEndpointsConfig, TInterfaceConfig } from 'librechat-data-provider';
 import type { ImperativePanelHandle } from 'react-resizable-panels';
-import useSideNavLinks from '~/hooks/Nav/useSideNavLinks';
 import { useLocalStorage, useLocalize } from '~/hooks';
 import { useGetEndpointsQuery } from '~/data-provider';
 import NavToggle from '~/components/Nav/NavToggle';
 import { useSidePanelContext } from '~/Providers';
+import { useToolCallsWithThoughtChains } from '~/hooks/useToolCallsWithThoughtChains';
 import { cn } from '~/utils';
-import Nav from './Nav';
+import ThoughtChainPanel from './ThoughtChainPanel';
 
 const defaultMinSize = 20;
 
@@ -28,6 +28,7 @@ const SidePanel = ({
   fullCollapse,
   setFullCollapse,
   interfaceConfig,
+  onClosePanel,
 }: {
   defaultSize?: number;
   hasArtifacts: boolean;
@@ -42,6 +43,7 @@ const SidePanel = ({
   setFullCollapse: React.Dispatch<React.SetStateAction<boolean>>;
   panelRef: React.RefObject<ImperativePanelHandle>;
   interfaceConfig: TInterfaceConfig;
+  onClosePanel?: () => void;
 }) => {
   const localize = useLocalize();
   const { endpoint } = useSidePanelContext();
@@ -51,44 +53,41 @@ const SidePanel = ({
 
   const isSmallScreen = useMediaQuery('(max-width: 767px)');
 
-  const { data: keyExpiry = { expiresAt: undefined } } = useUserKeyQuery(endpoint ?? '');
+  // 获取所有工具调用数据（包括有思维链和没有思维链的）
+  const {
+    toolCalls,
+    currentIndex,
+    setCurrentIndex,
+    currentToolCall,
+    hasNext,
+    hasPrevious,
+    goToNext,
+    goToPrevious,
+  } = useToolCallsWithThoughtChains();
 
-  const defaultActive = useMemo(() => {
-    const activePanel = localStorage.getItem('side:active-panel');
-    return typeof activePanel === 'string' ? activePanel : undefined;
-  }, []);
+  const [shouldRenderThoughtChain, setShouldRenderThoughtChain] = useState(false);
 
-  const endpointType = useMemo(
-    () => getEndpointField(endpointsConfig, endpoint, 'type'),
-    [endpoint, endpointsConfig],
-  );
-
-  const userProvidesKey = useMemo(
-    () => !!(endpointsConfig?.[endpoint ?? '']?.userProvide ?? false),
-    [endpointsConfig, endpoint],
-  );
-  const keyProvided = useMemo(
-    () => (userProvidesKey ? !!(keyExpiry.expiresAt ?? '') : true),
-    [keyExpiry.expiresAt, userProvidesKey],
-  );
+  // 当侧边栏打开时，即使没有工具调用也应该显示内容（显示"暂无"）
+  useEffect(() => {
+    if (!isCollapsed && !fullCollapse) {
+      setShouldRenderThoughtChain(true);
+    } else {
+      setShouldRenderThoughtChain(false);
+    }
+  }, [isCollapsed, fullCollapse]);
 
   const hidePanel = useCallback(() => {
-    setIsCollapsed(true);
-    setCollapsedSize(0);
-    setMinSize(defaultMinSize);
-    setFullCollapse(true);
-    localStorage.setItem('fullPanelCollapse', 'true');
-    panelRef.current?.collapse();
-  }, [panelRef, setMinSize, setIsCollapsed, setFullCollapse, setCollapsedSize]);
-
-  const Links = useSideNavLinks({
-    endpoint,
-    hidePanel,
-    keyProvided,
-    endpointType,
-    interfaceConfig,
-    endpointsConfig,
-  });
+    if (onClosePanel) {
+      onClosePanel();
+    } else {
+      setIsCollapsed(true);
+      setCollapsedSize(0);
+      setMinSize(defaultMinSize);
+      setFullCollapse(true);
+      localStorage.setItem('fullPanelCollapse', 'true');
+      panelRef.current?.collapse();
+    }
+  }, [panelRef, setMinSize, setIsCollapsed, setFullCollapse, setCollapsedSize, onClosePanel]);
 
   const toggleNavVisible = useCallback(() => {
     if (newUser) {
@@ -131,6 +130,7 @@ const SidePanel = ({
           navVisible={!isCollapsed}
           isHovering={isHovering}
           onToggle={toggleNavVisible}
+          onHide={hidePanel}
           setIsHovering={setIsHovering}
           className={cn(
             'fixed top-1/2',
@@ -180,11 +180,16 @@ const SidePanel = ({
             : 'opacity-100',
         )}
       >
-        <Nav
-          resize={panelRef.current?.resize}
-          isCollapsed={isCollapsed}
-          defaultActive={defaultActive}
-          links={Links}
+        <ThoughtChainPanel
+          toolCallData={currentToolCall}
+          currentIndex={currentIndex}
+          totalCount={toolCalls.length}
+          hasNext={hasNext}
+          hasPrevious={hasPrevious}
+          onNext={goToNext}
+          onPrevious={goToPrevious}
+          shouldRender={shouldRenderThoughtChain}
+          onRenderChange={setShouldRenderThoughtChain}
         />
       </ResizablePanel>
     </>

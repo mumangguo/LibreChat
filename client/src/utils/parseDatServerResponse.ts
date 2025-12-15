@@ -22,6 +22,21 @@ export interface ThoughtChainData {
   };
 }
 
+export interface ToolCallInfo {
+  name: string;
+  args: string | Record<string, unknown>;
+  output?: string | null;
+  id?: string;
+  progress?: number;
+  auth?: string;
+  expires_at?: number;
+}
+
+export interface ToolCallWithThoughtChain {
+  thoughtChain: ThoughtChainData | null;
+  toolCall: ToolCallInfo;
+}
+
 export function parseDatServerResponse(response: string): ThoughtChainData | null {
   if (!response || typeof response !== 'string') {
     return null;
@@ -149,8 +164,7 @@ export function parseDatServerResponse(response: string): ThoughtChainData | nul
           result.semanticToSql = `错误: ${semanticData.error}`;
         } else {
           // 如果没有错误，提取 Query SQL 或直接存储
-          result.semanticToSql =
-            semanticData.QuerySQL || semanticData.query_sql || semanticContent;
+          result.semanticToSql = semanticData.QuerySQL || semanticData.query_sql || semanticContent;
         }
       } catch (e) {
         // 不是 JSON，检查是否包含 "Query SQL:" 前缀
@@ -234,13 +248,22 @@ export function parseDatServerResponse(response: string): ThoughtChainData | nul
  * 返回按时间顺序排列的思维链数组（从旧到新）
  */
 export function extractAllDatServerThoughtChains(messages: any[]): ThoughtChainData[] {
+  const toolCallsWithChains = extractAllDatServerToolCallsWithThoughtChains(messages);
+  return toolCallsWithChains.map((item) => item.thoughtChain);
+}
+
+/**
+ * 从消息中提取所有工具调用（包括 dat-server 和其他工具）
+ * 返回按时间顺序排列的数组（从旧到新）
+ */
+export function extractAllToolCalls(messages: any[]): ToolCallWithThoughtChain[] {
   if (!messages || messages.length === 0) {
     return [];
   }
 
-  const thoughtChains: ThoughtChainData[] = [];
+  const result: ToolCallWithThoughtChain[] = [];
 
-  // 从旧到新遍历所有消息，收集所有思维链
+  // 从旧到新遍历所有消息，收集所有工具调用
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
     if (!message || !message.content || !Array.isArray(message.content)) {
@@ -265,38 +288,68 @@ export function extractAllDatServerThoughtChains(messages: any[]): ThoughtChainD
         continue;
       }
 
-      // 检查是否是 dat-server 的工具调用
       const toolName = functionData.name || '';
+      const output = functionData.output || toolCall.output;
 
       // 检查是否是 dat-server 的工具调用
       let isDatServerTool = false;
+      let thoughtChain: ThoughtChainData | null = null;
+
       if (toolName.includes(Constants.mcp_delimiter)) {
         const [, serverName] = toolName.split(Constants.mcp_delimiter);
         if (serverName === 'dat-server') {
           isDatServerTool = true;
         }
       } else if (toolName.includes('dat-server')) {
-        // Fallback: check if tool name contains dat-server
         isDatServerTool = true;
       }
 
-      if (!isDatServerTool) {
-        continue;
-      }
-
-      // 提取输出 - 可能在 function.output 或 toolCall.output
-      const output = functionData.output || toolCall.output;
-      if (output && typeof output === 'string') {
-        const thoughtChain = parseDatServerResponse(output);
+      // 如果是 dat-server 工具调用，尝试解析思维链
+      if (isDatServerTool && output && typeof output === 'string') {
+        thoughtChain = parseDatServerResponse(output);
         if (thoughtChain) {
-          thoughtChains.push(thoughtChain);
           console.log('✅ 成功解析 dat-server 思维链数据:', Object.keys(thoughtChain));
         }
+      }
+
+      // 提取工具调用信息
+      const toolCallInfo: ToolCallInfo = {
+        name: toolName,
+        args: functionData.arguments || toolCall.args || '',
+        output: output,
+        id: toolCall.id || functionData.id,
+        progress: toolCall.progress,
+        auth: toolCall.auth,
+        expires_at: toolCall.expires_at,
+      };
+
+      // 只添加有输出或参数的 toolcall，避免显示空的工具调用
+      if (
+        toolCallInfo.output ||
+        (typeof toolCallInfo.args === 'string' && toolCallInfo.args) ||
+        (typeof toolCallInfo.args === 'object' && Object.keys(toolCallInfo.args).length > 0)
+      ) {
+        result.push({
+          thoughtChain,
+          toolCall: toolCallInfo,
+        });
       }
     }
   }
 
-  return thoughtChains;
+  return result;
+}
+
+/**
+ * 从消息中提取所有 dat-server 工具调用及其对应的思维链数据
+ * 返回按时间顺序排列的数组（从旧到新）
+ * @deprecated 使用 extractAllToolCalls 获取所有工具调用
+ */
+export function extractAllDatServerToolCallsWithThoughtChains(
+  messages: any[],
+): ToolCallWithThoughtChain[] {
+  // 为了向后兼容，只返回 dat-server 的工具调用
+  return extractAllToolCalls(messages).filter((item) => item.thoughtChain !== null);
 }
 
 /**

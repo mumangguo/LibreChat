@@ -4,6 +4,7 @@ import { cn } from '~/utils';
 
 export default function NavToggle({
   onToggle,
+  onHide,
   navVisible,
   isHovering,
   setIsHovering,
@@ -12,6 +13,7 @@ export default function NavToggle({
   translateX = true,
 }: {
   onToggle: () => void;
+  onHide?: () => void;
   navVisible: boolean;
   isHovering: boolean;
   setIsHovering: (isHovering: boolean) => void;
@@ -46,7 +48,14 @@ export default function NavToggle({
         aria-expanded={navVisible}
         aria-controls={side === 'left' ? 'chat-history-nav' : 'controls-nav'}
         id={`toggle-${side}-nav`}
-        onClick={onToggle}
+        onClick={() => {
+          // 如果侧边栏可见且有 onHide 方法，则直接隐藏；否则切换
+          if (navVisible && onHide) {
+            onHide();
+          } else {
+            onToggle();
+          }
+        }}
         role="button"
         description={
           navVisible ? localize('com_nav_close_sidebar') : localize('com_nav_open_sidebar')
