@@ -37,6 +37,17 @@ export interface ToolCallWithThoughtChain {
   toolCall: ToolCallInfo;
 }
 
+/**
+ * 按消息分组的工具调用数据
+ * 用于支持多轮对话的思维链展示
+ */
+export interface MessageToolCalls {
+  messageId: string;
+  messageIndex: number; // 消息在对话中的序号（从1开始）
+  toolCalls: ToolCallWithThoughtChain[];
+  isStreaming?: boolean; // 是否正在流式输出
+}
+
 export function parseDatServerResponse(response: string): ThoughtChainData | null {
   if (!response || typeof response !== 'string') {
     return null;
@@ -249,7 +260,9 @@ export function parseDatServerResponse(response: string): ThoughtChainData | nul
  */
 export function extractAllDatServerThoughtChains(messages: any[]): ThoughtChainData[] {
   const toolCallsWithChains = extractAllDatServerToolCallsWithThoughtChains(messages);
-  return toolCallsWithChains.map((item) => item.thoughtChain);
+  return toolCallsWithChains
+    .map((item) => item.thoughtChain)
+    .filter((chain): chain is ThoughtChainData => chain !== null);
 }
 
 /**
@@ -323,17 +336,12 @@ export function extractAllToolCalls(messages: any[]): ToolCallWithThoughtChain[]
         expires_at: toolCall.expires_at,
       };
 
-      // 只添加有输出或参数的 toolcall，避免显示空的工具调用
-      if (
-        toolCallInfo.output ||
-        (typeof toolCallInfo.args === 'string' && toolCallInfo.args) ||
-        (typeof toolCallInfo.args === 'object' && Object.keys(toolCallInfo.args).length > 0)
-      ) {
-        result.push({
-          thoughtChain,
-          toolCall: toolCallInfo,
-        });
-      }
+      // 添加工具调用，即使参数还在流式传输中也要显示
+      // 这样可以实现实时展示流式传输的参数
+      result.push({
+        thoughtChain,
+        toolCall: toolCallInfo,
+      });
     }
   }
 
@@ -350,6 +358,108 @@ export function extractAllDatServerToolCallsWithThoughtChains(
 ): ToolCallWithThoughtChain[] {
   // 为了向后兼容，只返回 dat-server 的工具调用
   return extractAllToolCalls(messages).filter((item) => item.thoughtChain !== null);
+}
+
+/**
+ * 从消息中提取工具调用，按消息分组
+ * 支持多轮对话的思维链展示
+ */
+export function extractToolCallsByMessage(messages: any[]): MessageToolCalls[] {
+  if (!messages || messages.length === 0) {
+    return [];
+  }
+
+  const result: MessageToolCalls[] = [];
+  let roundIndex = 0;
+
+  // 遍历所有消息
+  for (let i = 0; i < messages.length; i++) {
+    const message = messages[i];
+    if (!message || !message.content || !Array.isArray(message.content)) {
+      continue;
+    }
+
+    const messageToolCalls: ToolCallWithThoughtChain[] = [];
+    let hasToolCall = false;
+
+    // 遍历消息内容，查找工具调用
+    for (const part of message.content) {
+      if (!part || part.type !== ContentTypes.TOOL_CALL) {
+        continue;
+      }
+
+      hasToolCall = true;
+      const toolCall = part[ContentTypes.TOOL_CALL] || part.tool_call;
+      if (!toolCall) {
+        continue;
+      }
+
+      const functionData = toolCall.function || toolCall;
+      if (!functionData || !functionData.name) {
+        continue;
+      }
+
+      const toolName = functionData.name || '';
+      const output = functionData.output || toolCall.output;
+
+      // 检查是否是 dat-server 的工具调用
+      let isDatServerTool = false;
+      let thoughtChain: ThoughtChainData | null = null;
+
+      if (toolName.includes(Constants.mcp_delimiter)) {
+        const [, serverName] = toolName.split(Constants.mcp_delimiter);
+        if (serverName === 'dat-server') {
+          isDatServerTool = true;
+        }
+      } else if (toolName.includes('dat-server')) {
+        isDatServerTool = true;
+      }
+
+      // 如果是 dat-server 工具调用，尝试解析思维链
+      if (isDatServerTool && output && typeof output === 'string') {
+        thoughtChain = parseDatServerResponse(output);
+      }
+
+      const toolCallInfo: ToolCallInfo = {
+        name: toolName,
+        args: functionData.arguments || toolCall.args || '',
+        output: output,
+        id: toolCall.id || functionData.id,
+        progress: toolCall.progress,
+        auth: toolCall.auth,
+        expires_at: toolCall.expires_at,
+      };
+
+      // 添加工具调用，即使参数还在流式传输中也要显示
+      // 这样可以实现实时展示流式传输的参数
+      messageToolCalls.push({
+        thoughtChain,
+        toolCall: toolCallInfo,
+      });
+    }
+
+    // 如果该消息包含工具调用，添加到结果中（即使 messageToolCalls 为空也要添加，因为可能在流式传输早期）
+    if (hasToolCall) {
+      roundIndex++;
+      // 检查是否有任何工具调用还在处理中（output 为空或 progress < 1）
+      const isStreaming =
+        message.unfinished === true ||
+        messageToolCalls.some(
+          (tc) =>
+            tc.toolCall.output == null ||
+            tc.toolCall.output === '' ||
+            (tc.toolCall.progress != null && tc.toolCall.progress < 1),
+        );
+      result.push({
+        messageId: message.messageId || `msg-${i}`,
+        messageIndex: roundIndex,
+        toolCalls: messageToolCalls,
+        isStreaming,
+      });
+    }
+  }
+
+  return result;
 }
 
 /**

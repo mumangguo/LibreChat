@@ -1,13 +1,9 @@
-import { useState, useCallback, useMemo, useEffect, memo } from 'react';
-import { getEndpointField } from 'librechat-data-provider';
-import { useUserKeyQuery } from 'librechat-data-provider/react-query';
+import { useState, useCallback, useEffect, memo } from 'react';
 import { ResizableHandleAlt, ResizablePanel, useMediaQuery } from '@librechat/client';
-import type { TEndpointsConfig, TInterfaceConfig } from 'librechat-data-provider';
+import type { TInterfaceConfig } from 'librechat-data-provider';
 import type { ImperativePanelHandle } from 'react-resizable-panels';
 import { useLocalStorage, useLocalize } from '~/hooks';
-import { useGetEndpointsQuery } from '~/data-provider';
 import NavToggle from '~/components/Nav/NavToggle';
-import { useSidePanelContext } from '~/Providers';
 import { useToolCallsWithThoughtChains } from '~/hooks/useToolCallsWithThoughtChains';
 import { cn } from '~/utils';
 import ThoughtChainPanel from './ThoughtChainPanel';
@@ -46,24 +42,13 @@ const SidePanel = ({
   onClosePanel?: () => void;
 }) => {
   const localize = useLocalize();
-  const { endpoint } = useSidePanelContext();
   const [isHovering, setIsHovering] = useState(false);
   const [newUser, setNewUser] = useLocalStorage('newUser', true);
-  const { data: endpointsConfig = {} as TEndpointsConfig } = useGetEndpointsQuery();
 
   const isSmallScreen = useMediaQuery('(max-width: 767px)');
 
-  // 获取所有工具调用数据（包括有思维链和没有思维链的）
-  const {
-    toolCalls,
-    currentIndex,
-    setCurrentIndex,
-    currentToolCall,
-    hasNext,
-    hasPrevious,
-    goToNext,
-    goToPrevious,
-  } = useToolCallsWithThoughtChains();
+  // 获取按消息分组的工具调用数据
+  const { toolCallsByMessage } = useToolCallsWithThoughtChains();
 
   const [shouldRenderThoughtChain, setShouldRenderThoughtChain] = useState(false);
 
@@ -181,13 +166,7 @@ const SidePanel = ({
         )}
       >
         <ThoughtChainPanel
-          toolCallData={currentToolCall}
-          currentIndex={currentIndex}
-          totalCount={toolCalls.length}
-          hasNext={hasNext}
-          hasPrevious={hasPrevious}
-          onNext={goToNext}
-          onPrevious={goToPrevious}
+          toolCallsByMessage={toolCallsByMessage}
           shouldRender={shouldRenderThoughtChain}
           onRenderChange={setShouldRenderThoughtChain}
         />

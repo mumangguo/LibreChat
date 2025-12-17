@@ -240,6 +240,366 @@ export default () => (
 );
 ```
 
+[可折叠的](https://x.ant.design/components/thought-chain-cn#thought-chain-demo-collapsible)
+
+配置 `collapsible` 可开启对思维链节点内容区域的折叠功能
+
+```tsx
+import type { ThoughtChainProps } from '@ant-design/x';
+import { ThoughtChain } from '@ant-design/x';
+import { Flex, Typography } from 'antd';
+import React from 'react';
+
+const { Text } = Typography;
+
+import { CodeOutlined, EditOutlined } from '@ant-design/icons';
+import { Card } from 'antd';
+
+const items: ThoughtChainProps['items'] = [
+  {
+    key: 'create_task',
+    title: 'Create Task: Write New Component',
+    description: 'Execute files needed for creating new component',
+    collapsible: true,
+    content: (
+      <Flex gap="small" vertical>
+        <Text type="secondary">Creating folder for new component</Text>
+        <ThoughtChain.Item
+          variant="solid"
+          icon={<CodeOutlined />}
+          title="Executing command"
+          description="mkdir -p component"
+        />
+        <Text type="secondary">Creating files needed for new component</Text>
+        <ThoughtChain.Item
+          variant="solid"
+          icon={<EditOutlined />}
+          title="Creating file"
+          description="component/index.tsx"
+        />
+        <Text type="secondary">Creating Chinese description file for new component</Text>
+        <ThoughtChain.Item
+          variant="solid"
+          icon={<EditOutlined />}
+          title="Creating file"
+          description="component/index.zh-CN.md"
+        />
+        <Text type="secondary">Creating English description file for new component</Text>
+        <ThoughtChain.Item
+          variant="solid"
+          icon={<EditOutlined />}
+          title="Creating file"
+          description="component/index.en-US.md"
+        />
+      </Flex>
+    ),
+    status: 'success',
+  },
+  {
+    key: 'check_task',
+    title: 'Checking Task Execution Steps',
+    description: 'Verify overall task execution logic and feasibility',
+    content: (
+      <Flex gap="small" vertical>
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="Folder created"
+          description="component"
+        />
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File created"
+          description="component/index.tsx"
+        />
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File created"
+          description="component/index.zh-CN.md"
+        />
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File created"
+          description="component/index.en-US.md"
+        />
+      </Flex>
+    ),
+    status: 'loading',
+  },
+];
+
+const App: React.FC = () => {
+  return (
+    <Card style={{ width: 500 }}>
+      <ThoughtChain defaultExpandedKeys={['create_task']} items={items} />
+    </Card>
+  );
+};
+
+export default App;
+```
+
+[受控的折叠](https://x.ant.design/components/thought-chain-cn#thought-chain-demo-controlled-collapsible)
+
+受控的思维链节点内容区域的折叠功能。
+
+```tsx
+import type { ThoughtChainProps } from '@ant-design/x';
+import { ThoughtChain } from '@ant-design/x';
+import { Button, Flex, Typography } from 'antd';
+import React, { useState } from 'react';
+
+const { Text } = Typography;
+
+import { CodeOutlined, EditOutlined } from '@ant-design/icons';
+import { Card } from 'antd';
+
+const items: ThoughtChainProps['items'] = [
+  {
+    key: 'create_task',
+    title: 'Create Task: Develop New Component',
+    description: 'Execute files needed for new component creation',
+    collapsible: true,
+    content: (
+      <Flex gap="small" vertical>
+        <Text type="secondary">Creating folder for new component</Text>
+        <ThoughtChain.Item
+          variant="solid"
+          icon={<CodeOutlined />}
+          title="Executing command"
+          description="mkdir -p component"
+        />
+        <Text type="secondary">Creating files needed for new component</Text>
+        <ThoughtChain.Item
+          variant="solid"
+          icon={<EditOutlined />}
+          title="Creating file"
+          description="component/index.tsx"
+        />
+        <Text type="secondary">Creating Chinese documentation file</Text>
+        <Text type="secondary">Creating English description file for new component</Text>
+        <ThoughtChain.Item
+          variant="solid"
+          icon={<EditOutlined />}
+          title="Continue creating file"
+          description="component/index.en-US.md"
+        />
+      </Flex>
+    ),
+    status: 'success',
+  },
+  {
+    key: 'check_task',
+    title: 'Check Task Execution Steps Completion',
+    collapsible: true,
+    description: 'Verify the overall task execution logic and feasibility',
+    content: (
+      <Flex gap="small" vertical>
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="Folder created"
+          description="component"
+        />
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File created"
+          description="component/index.tsx"
+        />
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File created"
+          description="component/index.zh-CN.md"
+        />
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File created"
+          description="component/index.en-US.md"
+        />
+      </Flex>
+    ),
+    status: 'success',
+  },
+  {
+    key: 'used_task',
+    title: 'Using the New Component',
+    description: 'Using the generated component to complete the task',
+    content: (
+      <Flex gap="small" vertical>
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File created"
+          description="component"
+        />
+      </Flex>
+    ),
+    status: 'loading',
+  },
+];
+
+const App: React.FC = () => {
+  const [expandedKeys, setExpandedKeys] = useState(['create_task']);
+  return (
+    <Card style={{ width: 500 }}>
+      <Button
+        style={{ marginBottom: 16 }}
+        onClick={() => {
+          setExpandedKeys(['check_task']);
+        }}
+      >
+        Open "check_task" details
+      </Button>
+      <ThoughtChain items={items} expandedKeys={expandedKeys} onExpand={setExpandedKeys} />
+    </Card>
+  );
+};
+
+export default App;
+```
+
+[客制化](https://x.ant.design/components/thought-chain-cn#thought-chain-demo-customization)
+
+`items` 属性支持灵活的客制化配置，详情参考 `ThoughtChainItemType` 定义
+
+```tsx
+import { CodeOutlined, EditOutlined, HeartTwoTone, SmileTwoTone } from '@ant-design/icons';
+import type { ThoughtChainItemType } from '@ant-design/x';
+import { Think, ThoughtChain } from '@ant-design/x';
+import { Button, Card, Flex, Typography } from 'antd';
+import React from 'react';
+
+const { Text } = Typography;
+const items: ThoughtChainItemType[] = [
+  {
+    title: 'Create Task',
+    description: 'description',
+    icon: <HeartTwoTone twoToneColor="#eb2f96" />,
+    footer: <Button block>Thought Chain Item Footer</Button>,
+    content: (
+      <Flex gap="small" vertical>
+        <Think title="Thinking Process">
+          {`1. Analyze task, understand task workflow\n2. Task creation, files needed for task\n3. Task execution, using new component`}
+        </Think>
+        <Text type="secondary">Creating folder for new component</Text>
+        <ThoughtChain.Item
+          variant="solid"
+          icon={<CodeOutlined />}
+          title="Executing command"
+          description="mkdir -p component"
+        />
+        <Text type="secondary">Creating files needed for new component</Text>
+        <ThoughtChain.Item
+          variant="solid"
+          icon={<EditOutlined />}
+          title="Creating file"
+          description="component/index.tsx"
+        />
+        <Text type="secondary">Creating Chinese documentation file for new component</Text>
+        <ThoughtChain.Item
+          variant="solid"
+          icon={<EditOutlined />}
+          title="Continue creating file"
+          description="component/index.zh-CN.md"
+        />
+        <Text type="secondary">Creating English description file for new component</Text>
+        <ThoughtChain.Item
+          variant="solid"
+          icon={<EditOutlined />}
+          title="Continue creating file"
+          description="component/index.en-US.md"
+        />
+      </Flex>
+    ),
+  },
+  {
+    key: 'check_task',
+    title: 'Check Task Execution Steps Completion',
+    icon: <SmileTwoTone />,
+    collapsible: true,
+    description: 'Verify the overall task execution logic and feasibility',
+    content: (
+      <Flex gap="small" vertical>
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="Folder creation completed"
+          description="component"
+        />
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File creation completed"
+          description="component/index.tsx"
+        />
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File creation completed"
+          description="component/index.zh-CN.md"
+        />
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File creation completed"
+          description="component/index.en-US.md"
+        />
+      </Flex>
+    ),
+  },
+  {
+    key: 'used_task',
+    title: 'Checking Task Execution Steps',
+    description: 'Verify the overall task execution logic and feasibility',
+    content: (
+      <Flex gap="small" vertical>
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="Folder creation completed"
+          description="component"
+        />
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File creation completed"
+          description="component/index.tsx"
+        />
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File creation completed"
+          description="component/index.zh-CN.md"
+        />
+        <ThoughtChain.Item
+          variant="solid"
+          status="success"
+          title="File creation completed"
+          description="component/index.en-US.md"
+        />
+      </Flex>
+    ),
+    status: 'error',
+  },
+];
+
+const App: React.FC = () => {
+  return (
+    <Card style={{ width: 500 }}>
+      <ThoughtChain items={items} line="dashed" />
+    </Card>
+  );
+};
+
+export default App;
+```
+
 
 
 ## 主题变量（Design Token）

@@ -1,7 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useChatContext } from '~/Providers';
-import { extractAllToolCalls } from '~/utils/parseDatServerResponse';
-import type { ToolCallWithThoughtChain } from '~/utils/parseDatServerResponse';
+import {
+  extractAllToolCalls,
+  extractToolCallsByMessage,
+} from '~/utils/parseDatServerResponse';
+import type {
+  ToolCallWithThoughtChain,
+  MessageToolCalls,
+} from '~/utils/parseDatServerResponse';
 
 /**
  * Hook 从当前消息中提取所有工具调用（包括有思维链和没有思维链的）
@@ -9,6 +15,7 @@ import type { ToolCallWithThoughtChain } from '~/utils/parseDatServerResponse';
  */
 export function useToolCallsWithThoughtChains(): {
   toolCalls: ToolCallWithThoughtChain[];
+  toolCallsByMessage: MessageToolCalls[];
   currentIndex: number;
   setCurrentIndex: (index: number) => void;
   currentToolCall: ToolCallWithThoughtChain | null;
@@ -19,10 +26,12 @@ export function useToolCallsWithThoughtChains(): {
 } {
   const { getMessages } = useChatContext();
   const [toolCalls, setToolCalls] = useState<ToolCallWithThoughtChain[]>([]);
+  const [toolCallsByMessage, setToolCallsByMessage] = useState<MessageToolCalls[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const lastMessagesRef = useRef<string>('');
 
   const lastToolCallsRef = useRef<ToolCallWithThoughtChain[]>([]);
+  const lastToolCallsByMessageRef = useRef<MessageToolCalls[]>([]);
   const lastToolCallsHashRef = useRef<string>('');
   const currentIndexRef = useRef<number>(0);
 
@@ -39,22 +48,39 @@ export function useToolCallsWithThoughtChains(): {
         if (!messages || messages.length === 0) {
           if (lastToolCallsRef.current.length > 0) {
             setToolCalls([]);
+            setToolCallsByMessage([]);
             setCurrentIndex(0);
             currentIndexRef.current = 0;
             lastToolCallsRef.current = [];
+            lastToolCallsByMessageRef.current = [];
             lastToolCallsHashRef.current = '';
             lastMessagesRef.current = '';
           }
           return;
         }
 
-        // 创建消息的简单哈希来检测变化（避免不必要的解析）
+        // 创建消息的哈希来检测变化
+        // 必须包含工具调用的 args 和 output，以便检测流式传输的更新
         const messagesHash = JSON.stringify(
-          messages.map((m: any) => ({
-            id: m.messageId,
-            contentLength: m.content?.length || 0,
-            lastContentType: m.content?.[m.content.length - 1]?.type,
-          })),
+          messages.map((m: any) => {
+            const toolCallContents = m.content?.filter((c: any) => c.type === 'tool_call') || [];
+            return {
+              id: m.messageId,
+              unfinished: m.unfinished,
+              contentLength: m.content?.length || 0,
+              // 关键：包含每个工具调用的完整数据以检测流式更新
+              toolCalls: toolCallContents.map((tc: any) => {
+                const toolCall = tc.tool_call || tc;
+                const func = toolCall.function || toolCall;
+                return {
+                  name: func.name,
+                  args: func.arguments || toolCall.args,
+                  output: func.output || toolCall.output,
+                  progress: toolCall.progress,
+                };
+              }),
+            };
+          }),
         );
 
         // 如果消息没有变化，跳过解析
@@ -65,6 +91,7 @@ export function useToolCallsWithThoughtChains(): {
         lastMessagesRef.current = messagesHash;
 
         const extracted = extractAllToolCalls(messages);
+        const extractedByMessage = extractToolCallsByMessage(messages);
 
         // 只在工具调用数据真正变化时更新状态
         const extractedHash = JSON.stringify(extracted);
@@ -73,6 +100,8 @@ export function useToolCallsWithThoughtChains(): {
           const previousLength = lastToolCallsRef.current.length;
           lastToolCallsHashRef.current = extractedHash;
           setToolCalls(extracted);
+          setToolCallsByMessage(extractedByMessage);
+          lastToolCallsByMessageRef.current = extractedByMessage;
 
           // 如果有新的工具调用，自动切换到最新的（最后一个）
           if (extracted.length > 0 && extracted.length > previousLength) {
@@ -95,9 +124,11 @@ export function useToolCallsWithThoughtChains(): {
         console.warn('Error extracting tool calls:', error);
         if (lastToolCallsRef.current.length > 0) {
           setToolCalls([]);
+          setToolCallsByMessage([]);
           setCurrentIndex(0);
           currentIndexRef.current = 0;
           lastToolCallsRef.current = [];
+          lastToolCallsByMessageRef.current = [];
           lastToolCallsHashRef.current = '';
         }
       }
@@ -106,8 +137,9 @@ export function useToolCallsWithThoughtChains(): {
     // 立刻检查
     checkMessages();
 
-    // 增加轮询间隔到 1 秒，减少不必要的检查
-    const interval = setInterval(checkMessages, 1000);
+    // 使用较短的轮询间隔 (100ms) 实现接近实时的更新
+    // 这样可以快速响应 SSE 推送的消息更新
+    const interval = setInterval(checkMessages, 100);
 
     return () => clearInterval(interval);
   }, [getMessages]);
@@ -134,6 +166,7 @@ export function useToolCallsWithThoughtChains(): {
 
   return {
     toolCalls,
+    toolCallsByMessage,
     currentIndex,
     setCurrentIndex,
     currentToolCall,

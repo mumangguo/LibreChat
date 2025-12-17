@@ -21,7 +21,7 @@ function MessagesViewContent({
   const { screenshotTargetRef } = useScreenshot();
   const scrollButtonPreference = useRecoilValue(store.showScrollButton);
   const [currentEditId, setCurrentEditId] = useState<number | string | null>(-1);
-  const scrollButtonRef = useRef<HTMLDivElement>(null);
+  const scrollToBottomRef = useRef<HTMLButtonElement>(null);
 
   const {
     conversation,
@@ -88,11 +88,9 @@ function MessagesViewContent({
             classNames="scroll-animation"
             unmountOnExit={true}
             appear={true}
-            nodeRef={scrollButtonRef}
+            nodeRef={scrollToBottomRef}
           >
-            <div ref={scrollButtonRef}>
-              <ScrollToBottom scrollHandler={handleSmoothToRef} />
-            </div>
+            <ScrollToBottom ref={scrollToBottomRef} scrollHandler={handleSmoothToRef} />
           </CSSTransition>
         </div>
       </div>
